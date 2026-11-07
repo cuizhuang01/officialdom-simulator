@@ -1,0 +1,935 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>官场模拟器</title>
+<style>
+:root{--red:#C41A1A;--red-dark:#9E1515;--red-light:#E83A3A;--gold:#D4A017;--gold-light:#F0C75E;--gold-dark:#B8860B;--bg:#F8F4F0;--bg-card:#FFF;--bg-card-hover:#FAF8F5;--surface:#F0ECE6;--border:#DDD6CC;--text:#2C2820;--text-dim:#8A8072;--text-bright:#FFF;--danger:#D43636;--warning:#E8A825;--safe:#3BB86B;--radius:8px;--radius-sm:4px;--space-xs:4px;--space-sm:8px;--space-md:12px;--space-lg:16px;--space-xl:24px;--font:'Segoe UI','PingFang SC','Microsoft YaHei',system-ui,sans-serif}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;overflow-x:hidden}
+::webkit-scrollbar{width:6px}
+::webkit-scrollbar-track{background:var(--surface)}
+::webkit-scrollbar-thumb{background:var(--border);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--text-dim)}
+.game-container{max-width:1400px;margin:0 auto;padding:var(--space-md);min-height:100vh;display:flex;flex-direction:column;gap:var(--space-md)}
+.header{display:flex;align-items:center;justify-content:space-between;padding:var(--space-md) var(--space-lg);background:linear-gradient(135deg,var(--red-dark),var(--red));border-radius:var(--radius);box-shadow:0 2px 6px rgba(0,0,0,0.12);flex-wrap:wrap;gap:var(--space-sm)}
+.header-title{display:flex;align-items:center;gap:var(--space-sm);font-size:1.3rem;font-weight:700;color:var(--gold-light);letter-spacing:1px}
+.header-title .icon{font-size:1.5rem}
+.header-info{display:flex;align-items:center;gap:var(--space-lg);font-size:0.85rem;color:var(--text-bright);flex-wrap:wrap}
+.header-info-item{display:flex;align-items:center;gap:var(--space-xs);padding:2px 10px;background:rgba(0,0,0,0.2);border-radius:100px;white-space:nowrap}
+.header-info-item .label{opacity:0.75}
+.header-info-item .value{font-weight:600}
+.save-btn{padding:4px 12px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.12);color:var(--text-bright);font-size:0.78rem;font-family:var(--font);border-radius:100px;cursor:pointer;transition:background 0.15s,border-color 0.15s;white-space:nowrap;display:inline-flex;align-items:center;gap:3px}
+.save-btn:hover{background:rgba(255,255,255,0.22);border-color:rgba(255,255,255,0.5)}
+.save-btn:active{background:rgba(255,255,255,0.08)}
+#nextRoundBtn{background:rgba(255,255,255,0.2);border-color:var(--gold-light);color:var(--gold-light);font-weight:600}
+.status-bar{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:var(--space-xs);padding:var(--space-sm);background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);max-height:none}
+.stat-card{display:flex;flex-direction:column;gap:1px;padding:4px 8px;background:var(--surface);border-radius:var(--radius-sm);min-width:0}
+.stat-card .stat-label{display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;color:var(--text-dim);gap:4px}
+.stat-card .stat-value{font-size:0.85rem;font-weight:700;color:var(--text);min-width:2em;text-align:right}
+.progress-track{width:100%;height:4px;background:#DDD6CC;border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;min-width:0;transition:width 0.4s,background 0.4s}
+.stat-card.reputation .progress-fill.rep-red{background:var(--danger)}
+.stat-card.reputation .progress-fill.rep-yellow{background:var(--warning)}
+.stat-card.reputation .progress-fill.rep-green{background:var(--safe)}
+.stat-card.inspection .progress-fill.ins-green{background:var(--safe)}
+.stat-card.inspection .progress-fill.ins-yellow{background:var(--warning)}
+.stat-card.inspection .progress-fill.ins-red{background:var(--danger)}
+.stat-card.stamina .progress-fill{background:#4A9EFF}
+.stat-card.integrity .progress-fill{background:var(--gold)}
+.stat-card.money .progress-fill{background:var(--gold-dark)}
+.stat-card.achievement .progress-fill{background:linear-gradient(90deg,var(--gold),var(--gold-dark))}
+.stat-card.finance .progress-fill{background:linear-gradient(90deg,#3BB86B,#2A9D5A)}
+.stat-card.highlight{border-left:3px solid var(--gold)}
+.main-area{display:grid;grid-template-columns:1fr 320px;gap:var(--space-md);flex:1;min-height:0}
+.panel-section{display:flex;flex-direction:column;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;min-height:400px}
+.tab-nav{display:flex;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0}
+.tab-btn{flex-shrink:0;padding:var(--space-sm) var(--space-lg);border:none;background:transparent;color:var(--text-dim);font-size:0.85rem;font-weight:500;cursor:pointer;position:relative;font-family:var(--font);white-space:nowrap;transition:color 0.2s,background 0.2s}
+.tab-btn:hover{color:var(--text);background:rgba(0,0,0,0.04)}
+.tab-btn.active{color:var(--red);background:rgba(196,26,26,0.06)}
+.tab-btn.active::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--red);border-radius:1px 1px 0 0}
+.tab-content{flex:1;padding:var(--space-lg);overflow-y:auto;min-height:200px}
+.tab-panel{display:none}
+.tab-panel.active{display:block;animation:fadeIn 0.25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.panel-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:240px;color:var(--text-dim);text-align:center;gap:var(--space-md)}
+.panel-placeholder .emoji{font-size:3rem;opacity:0.5}
+.log-section{display:flex;flex-direction:column;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.log-header{display:flex;align-items:center;justify-content:space-between;padding:var(--space-sm) var(--space-md);background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.log-header h3{font-size:0.82rem;color:var(--text-dim);font-weight:500}
+.log-header .log-count{font-size:0.72rem;color:var(--text-dim);background:var(--border);padding:1px 8px;border-radius:100px}
+.log-body{flex:1;overflow-y:auto;padding:var(--space-sm);min-height:200px;max-height:500px;display:flex;flex-direction:column;gap:2px}
+.log-entry{padding:var(--space-xs) var(--space-sm);font-size:0.78rem;line-height:1.5;border-left:2px solid var(--border);margin-left:var(--space-xs);color:var(--text-dim);transition:background 0.2s}
+.log-entry:hover{background:var(--surface)}
+.log-entry .log-round{color:var(--gold-dark);font-weight:600;margin-right:var(--space-xs)}
+.log-entry.log-info{border-left-color:#4A9EFF}
+.log-entry.log-success{border-left-color:var(--safe)}
+.log-entry.log-warning{border-left-color:var(--warning)}
+.log-entry.log-danger{border-left-color:var(--danger)}
+.log-entry.log-event{border-left-color:var(--gold)}
+.log-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:0.82rem;opacity:0.6}
+/* ===== Flash Animation ===== */
+.stat-value.flash{animation:flashPulse 0.6s ease}
+@keyframes flashPulse{0%{color:var(--gold)}50%{color:var(--gold);text-shadow:0 0 6px rgba(212,160,23,0.3)}to{color:var(--text)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}.progress-fill{transition:none}.tab-panel.active{animation:none}.stat-value.flash{animation:none}}
+@media(max-width:900px){.main-area{grid-template-columns:1fr}.log-section{max-height:260px}.log-body{max-height:200px}.status-bar{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.header-info{gap:var(--space-sm)}}
+@media(max-width:480px){.game-container{padding:var(--space-sm)}.header{flex-direction:column;align-items:flex-start}.header-info{width:100%;justify-content:flex-start}.status-bar{grid-template-columns:repeat(2,1fr);padding:var(--space-sm);gap:var(--space-xs)}.stat-card{padding:var(--space-xs) var(--space-sm)}.tab-btn{padding:var(--space-sm) var(--space-md);font-size:0.8rem}.tab-content{padding:var(--space-md)}}
+.panel-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:var(--space-md)}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-sm) var(--space-lg)}
+.info-grid>div{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px dashed var(--border);font-size:0.82rem}
+.info-grid>div:last-child,.info-grid>div:nth-last-child(2){border-bottom:none}
+.info-label{color:var(--text-dim)}.info-value{color:var(--text);font-weight:600}
+.transfer-btn{display:block;width:100%;padding:var(--space-sm) var(--space-md);margin-bottom:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:0.85rem;font-family:var(--font);border-radius:var(--radius-sm);cursor:pointer;text-align:left}
+.transfer-btn:hover{background:rgba(196,26,26,0.06);border-color:var(--red)}
+.sub-check{display:inline-flex;align-items:center;gap:4px;font-size:0.8rem;padding:4px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:100px;cursor:pointer}
+.sub-check:hover{border-color:var(--red)}
+.sub-check input[type=checkbox]{accent-color:var(--red)}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;justify-content:center;align-items:center}
+.overlay-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:var(--space-xl);min-width:280px;max-width:500px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,0.15)}
+#examScreen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;justify-content:center;align-items:center;padding:var(--space-md)}
+.exam-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:var(--space-xl);width:100%;max-width:640px;max-height:90vh;overflow-y:auto}
+.exam-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-lg);padding-bottom:var(--space-md);border-bottom:1px solid var(--border)}
+.exam-header h2{font-size:1.2rem;color:var(--red)}
+.exam-progress{font-size:0.82rem;color:var(--text-dim)}
+.exam-question{font-size:0.95rem;line-height:1.7;margin-bottom:var(--space-lg);color:var(--text)}
+.exam-question .q-num{display:inline-block;background:var(--red);color:#fff;font-weight:700;width:28px;height:28px;line-height:28px;text-align:center;border-radius:50%;margin-right:var(--space-sm);font-size:0.85rem}
+.exam-option{display:block;width:100%;text-align:left;padding:var(--space-sm) var(--space-md);margin-bottom:var(--space-sm);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:0.88rem;font-family:var(--font);border-radius:var(--radius-sm);cursor:pointer;line-height:1.5}
+.exam-option:hover,.exam-option.selected{border-color:var(--red);background:rgba(196,26,26,0.08)}
+.exam-option.correct{border-color:var(--safe);background:rgba(59,184,107,0.1);color:var(--safe)}
+.exam-option.wrong{border-color:var(--danger);background:rgba(212,54,54,0.1);color:var(--danger)}
+.exam-nav{display:flex;justify-content:space-between;align-items:center;margin-top:var(--space-lg);padding-top:var(--space-md);border-top:1px solid var(--border)}
+.exam-nav .exam-btn{padding:var(--space-sm) var(--space-lg);border:1px solid var(--red);background:var(--red);color:#fff;font-size:0.88rem;font-family:var(--font);border-radius:var(--radius-sm);cursor:pointer}
+.exam-nav .exam-btn:hover{background:var(--red-dark)}
+.exam-nav .exam-btn:disabled{opacity:0.4;cursor:not-allowed}
+.exam-nav .exam-btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
+.exam-nav .exam-btn-outline:hover{background:var(--surface)}
+.exam-result{text-align:center;padding:var(--space-lg) 0}
+.exam-result .score{font-size:3rem;font-weight:700;color:var(--red)}
+.exam-result .score-pass{color:var(--safe)}
+.exam-result .score-fail{color:var(--danger)}
+.exam-big-btn{display:inline-block;padding:var(--space-md) var(--space-xl);border:none;background:var(--red);color:#fff;font-size:1rem;font-family:var(--font);border-radius:var(--radius);cursor:pointer;margin:var(--space-sm)}
+.exam-big-btn:hover{background:var(--red-dark)}
+#gameContainer{display:none}
+#startScreen{position:fixed;inset:0;background:linear-gradient(135deg,var(--red-dark),var(--red));z-index:998;display:flex;justify-content:center;align-items:center;padding:var(--space-md)}
+.start-card{background:var(--bg-card);border-radius:var(--radius);padding:var(--space-xl);width:100%;max-width:420px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,0.25)}
+.start-card h1{font-size:1.8rem;color:var(--red);margin-bottom:4px}
+.start-card .subtitle{font-size:0.82rem;color:var(--text-dim);margin-bottom:var(--space-xl)}
+.start-card .name-input{width:100%;padding:var(--space-sm) var(--space-md);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:1rem;font-family:var(--font);color:var(--text);background:var(--surface);outline:none;margin-bottom:var(--space-md);box-sizing:border-box}
+.start-card .name-input:focus{border-color:var(--red)}
+.start-card .start-btn{display:block;width:100%;padding:var(--space-md);border:none;background:var(--red);color:#fff;font-size:1.05rem;font-family:var(--font);border-radius:var(--radius-sm);cursor:pointer;margin-bottom:var(--space-sm)}
+.start-card .start-btn:hover{background:var(--red-dark)}
+.start-card .start-btn.secondary{background:transparent;border:1px solid var(--border);color:var(--text)}
+.start-card .start-btn.secondary:hover{background:var(--surface)}
+.event-badge{display:inline-block;padding:1px 10px;border-radius:100px;font-size:0.72rem;font-weight:600;margin-bottom:8px}
+.event-badge.lv0{background:rgba(59,184,107,0.15);color:var(--safe)}
+.event-badge.lv1{background:rgba(232,168,37,0.15);color:var(--warning)}
+.event-badge.lv2{background:rgba(196,26,26,0.1);color:var(--red)}
+.event-badge.lv3{background:rgba(180,40,180,0.15);color:#B428B4}
+.event-title{font-size:1.05rem;font-weight:700;color:var(--text);margin-bottom:8px}
+.event-desc{font-size:0.88rem;color:var(--text-dim);line-height:1.6;margin-bottom:16px}
+.event-opt-btn{display:block;width:100%;text-align:left;padding:10px 14px;margin-bottom:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:0.85rem;font-family:var(--font);border-radius:var(--radius-sm);cursor:pointer;line-height:1.5}
+.event-opt-btn:hover{border-color:var(--red);background:rgba(196,26,26,0.04)}
+.event-effects{display:inline-block;font-size:0.72rem;color:var(--text-dim);margin-top:2px}
+.event-effects .pos{color:var(--safe)}
+.event-effects .neg{color:var(--danger)}
+
+/* ===== Tax Slider ===== */
+.tax-slider-wrap{padding:12px;background:var(--surface);border-radius:var(--radius-sm);margin-bottom:12px;text-align:center}
+.tax-slider-wrap .tax-pct{font-size:2rem;font-weight:700;color:var(--red)}
+.tax-tag{font-size:0.82rem;padding:2px 12px;border-radius:100px;display:inline-block;margin:4px auto 8px}
+.tax-slider-wrap input[type=range]{width:100%;height:6px;-webkit-appearance:none;-moz-appearance:none;appearance:none;background:#DDD6CC;border-radius:3px;outline:none;margin:6px 0}
+.tax-slider-wrap input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;background:var(--red);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+.tax-slider-wrap input[type=range]:disabled{opacity:0.35}
+.tax-slider-wrap input[type=range]:disabled::-webkit-slider-thumb{cursor:not-allowed;background:var(--text-dim)}
+.tax-info{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.tax-info>div{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;text-align:center}
+.tax-info .ti-num{font-size:1rem;font-weight:700;color:var(--text)}
+.tax-info .ti-lbl{font-size:0.72rem;color:var(--text-dim)}
+.trend-wrap{margin-top:12px;padding:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.trend-wrap .tl{font-size:0.72rem;color:var(--text-dim);margin-bottom:4px}
+.trend-bars{display:flex;align-items:flex-end;gap:4px;height:36px}
+.trend-bars>div{flex:1;border-radius:2px 2px 0 0;min-height:2px;position:relative}
+.trend-bars .tb-t{background:var(--red)}
+.trend-bars .tb-r{background:var(--gold-dark)}
+.tooltip-custom{position:absolute;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:0.78rem;color:var(--text);white-space:nowrap;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.12);pointer-events:none}
+/* ===== Fund Check Modal ===== */
+#fundOverlay .overlay-card{border:2px solid var(--danger)}
+.fund-icon{font-size:3rem;margin-bottom:8px}
+.fund-title{font-size:1.1rem;font-weight:700;color:var(--danger);margin-bottom:8px}
+.fund-detail{font-size:0.85rem;color:var(--text-dim);margin-bottom:16px;line-height:1.6}
+.fund-btn{padding:8px 24px;border:none;background:var(--red);color:#fff;font-size:0.9rem;font-family:var(--font);border-radius:var(--radius-sm);cursor:pointer}
+.fund-btn:hover{background:var(--red-dark)}
+/* ===== 四不两直暗访系统 ===== */
+.insp-hero{display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px;background:linear-gradient(135deg,var(--surface),var(--bg-card));border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;text-align:center}
+.insp-hero .insp-ico{font-size:2.6rem}
+.insp-hero .insp-tt{font-size:1.1rem;font-weight:700;color:var(--red)}
+.insp-hero .insp-sub{font-size:0.8rem;color:var(--text-dim);max-width:420px;line-height:1.6}
+.insp-main-btn{display:inline-flex;align-items:center;gap:6px;padding:12px 32px;border:none;background:var(--red);color:#fff;font-size:1rem;font-family:var(--font);border-radius:var(--radius);cursor:pointer;font-weight:600;transition:background 0.15s}
+.insp-main-btn:hover{background:var(--red-dark)}
+.insp-main-btn:disabled{background:var(--border);color:var(--text-dim);cursor:not-allowed}
+.insp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:680px){.insp-grid{grid-template-columns:repeat(2,1fr)}}
+.insp-field{display:flex;flex-direction:column;gap:4px;padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;text-align:left;font-family:var(--font);color:var(--text);transition:border-color 0.15s,background 0.15s}
+.insp-field:hover{border-color:var(--red);background:rgba(196,26,26,0.04)}
+.insp-field .if-ico{font-size:1.4rem}
+.insp-field .if-nm{font-size:0.9rem;font-weight:600;color:var(--red)}
+.insp-field .if-dc{font-size:0.72rem;color:var(--text-dim);line-height:1.4}
+.insp-result{border-radius:var(--radius);padding:16px;margin-bottom:12px;border-left:4px solid var(--border)}
+.insp-result.big{border-left-color:var(--danger);background:rgba(212,54,54,0.06)}
+.insp-result.small{border-left-color:var(--warning);background:rgba(232,168,37,0.06)}
+.insp-result.none{border-left-color:var(--text-dim);background:var(--surface)}
+.insp-result .ir-tag{font-size:0.95rem;font-weight:700;margin-bottom:6px}
+.insp-result.big .ir-tag{color:var(--danger)}
+.insp-result.small .ir-tag{color:var(--warning)}
+.insp-result.none .ir-tag{color:var(--text-dim)}
+.insp-result .ir-txt{font-size:0.88rem;line-height:1.6;color:var(--text)}
+.insp-decide{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+@media(max-width:480px){.insp-decide{grid-template-columns:1fr}}
+.insp-opt{display:flex;flex-direction:column;gap:6px;padding:14px;background:var(--bg-card);border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;font-family:var(--font);text-align:center;color:var(--text);transition:background 0.15s,border-color 0.15s}
+.insp-opt:hover{border-color:var(--red)}
+.insp-opt.report{border-color:var(--safe)}
+.insp-opt.report:hover{background:rgba(59,184,107,0.06)}
+.insp-opt.conceal{border-color:var(--danger)}
+.insp-opt.conceal:hover{background:rgba(212,54,54,0.06)}
+.insp-opt .io-tt{font-size:1rem;font-weight:700}
+.insp-opt.report .io-tt{color:var(--safe)}
+.insp-opt.conceal .io-tt{color:var(--danger)}
+.insp-opt .io-eff{font-size:0.8rem;color:var(--text-dim);line-height:1.6}
+.insp-opt .io-log{font-size:0.72rem;color:var(--text-dim);font-style:italic}
+.insp-stat-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.insp-stat{flex:1;min-width:90px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;text-align:center}
+.insp-stat .is-n{font-size:1.1rem;font-weight:700;color:var(--text)}
+.insp-stat .is-l{font-size:0.7rem;color:var(--text-dim)}
+.insp-hist{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto}
+.insp-hist-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:0.8rem;line-height:1.5}
+.insp-hist-item .ih-r{color:var(--gold-dark);font-weight:600}
+.insp-badge{display:inline-block;font-size:0.7rem;padding:1px 8px;border-radius:100px;font-weight:600}
+.insp-badge.big{background:rgba(212,54,54,0.15);color:var(--danger)}
+.insp-badge.small{background:rgba(232,168,37,0.15);color:var(--warning)}
+.insp-badge.none{background:var(--border);color:var(--text-dim)}
+.insp-badge.report{background:rgba(59,184,107,0.15);color:var(--safe)}
+.insp-badge.conceal{background:rgba(212,54,54,0.15);color:var(--danger)}
+.insp-badge.noneed{background:var(--border);color:var(--text-dim)}
+/* ===== 测试/调试系统 ===== */
+.test-btn-wrap{position:relative;display:block;width:100%}
+.test-btn-wrap .lp-progress{position:absolute;left:0;bottom:0;height:3px;background:var(--gold);border-radius:0 0 var(--radius-sm) var(--radius-sm);width:0;pointer-events:none;transition:width 0.08s linear}
+.test-btn-wrap .lp-hint{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:0.72rem;color:var(--gold-dark);white-space:nowrap;opacity:0;transition:opacity 0.2s;pointer-events:none}
+.test-btn-wrap.pressing .lp-hint{opacity:1}
+.test-btn-wrap.pressing .start-btn{box-shadow:0 0 0 2px var(--gold)}
+.test-panel{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;max-height:58vh;overflow-y:auto;padding:2px}
+@media(max-width:520px){.test-panel{grid-template-columns:1fr}}
+.test-field{display:flex;flex-direction:column;gap:3px}
+.test-field label{font-size:0.78rem;color:var(--text-dim)}
+.test-field input,.test-field select{padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.85rem;font-family:var(--font);color:var(--text);background:var(--bg-card);outline:none}
+.test-field input:focus,.test-field select:focus{border-color:var(--red)}
+.test-field-full{grid-column:1 / -1}
+.test-check{display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text);cursor:pointer}
+.test-check input{accent-color:var(--red);width:16px;height:16px}
+</style>
+</head>
+<body>
+
+<div class="game-container" id="gameContainer">
+  <header class="header">
+    <div class="header-title"><span class="icon">🏛️</span><span>官场模拟器</span></div>
+    <div class="header-info">
+      <span class="header-info-item"><span class="label">回合</span><span class="value" id="dispRound">1</span></span>
+      <span class="header-info-item"><span class="label">姓名</span><span class="value" id="dispName" style="font-weight:700;color:var(--gold-light)">未知</span></span>
+      <span class="header-info-item"><span class="label">工龄</span><span class="value" id="dispWorkAge">0年</span></span>
+      <span class="header-info-item" id="rankItem"><span class="label">职级</span><span class="value" id="dispRank">科员</span></span>
+      <span class="header-info-item"><span class="label">地区</span><span class="value" id="dispRegion">临安县</span></span>
+      <button class="save-btn" id="btnSave">💾 保存</button>
+      <button class="save-btn" id="btnLoad">📂 读取</button>
+      <button class="save-btn" id="nextRoundBtn" onclick="nextRound()">⏭ 下一回合</button>
+      <button class="save-btn" id="restBtn" onclick="rest()" style="border-color:var(--safe);color:var(--safe)">😴 休息</button>
+      <button class="save-btn" id="loanBtn" onclick="showLoanDialog()" style="border-color:var(--warning);color:var(--warning)">🏦 贷款</button>
+    </div>
+  </header>
+
+<section class="status-bar" id="statusBar">
+  <div class="stat-card stamina"><div class="stat-label"><span>💪 体力</span><span class="stat-value" id="valStamina">80</span></div><div class="progress-track"><div class="progress-fill" id="barStamina" style="width:80%"></div></div></div>
+  <div class="stat-card money"><div class="stat-label"><span>💰 个人金钱</span><span class="stat-value" id="valMoney">25.0 万</span></div><div class="progress-track"><div class="progress-fill" id="barMoney" style="width:5%"></div></div></div>
+  <div class="stat-card achievement"><div class="stat-label"><span>📈 政绩值</span><span class="stat-value" id="valAchievement">0</span></div><div class="progress-track"><div class="progress-fill" id="barAchievement" style="width:0%"></div></div></div>
+  <div class="stat-card reputation"><div class="stat-label"><span>👍 人民声望</span><span class="stat-value" id="valReputation">60</span></div><div class="progress-track"><div class="progress-fill" id="barReputation" style="width:60%"></div></div></div>
+  <div class="stat-card integrity"><div class="stat-label"><span>🛡️ 清廉度</span><span class="stat-value" id="valIntegrity">75</span></div><div class="progress-track"><div class="progress-fill" id="barIntegrity" style="width:75%"></div></div></div>
+  <div class="stat-card inspection"><div class="stat-label"><span>🔍 纪委关注度</span><span class="stat-value" id="valInspection">0</span></div><div class="progress-track"><div class="progress-fill" id="barInspection" style="width:0%"></div></div></div>
+  <div class="stat-card finance highlight" id="cardFinance"><div class="stat-label"><span>🏦 政府财政资金</span><span class="stat-value" id="valFinance">5000 万</span></div><div class="progress-track"><div class="progress-fill" id="barFinance" style="width:50%"></div></div></div>
+  <div class="stat-card" id="cardHotPublic"><div class="stat-label"><span>🔥 舆情热度</span><span class="stat-value" id="valHotPublic">0</span></div><div class="progress-track"><div class="progress-fill" id="barHotPublic" style="width:0%;background:var(--danger)"></div></div></div>
+  <div class="stat-card" style="background:transparent;border:none"><div class="stat-label"><span>🎂 年龄</span><span class="stat-value" id="valAge">22</span></div></div>
+  <div class="stat-card" style="background:transparent;border:none"><div class="stat-label"><span>📅 年份</span><span class="stat-value" id="valYear">2024</span></div></div>
+  <div class="stat-card" style="background:transparent;border:none"><div class="stat-label"><span>📊 干部排名</span><span class="stat-value" id="valRanking">-</span></div></div>
+  <div class="stat-card" style="background:transparent;border:none"><div class="stat-label"><span>🛡️ 健康</span><span class="stat-value" id="valHealth">良好</span></div></div>
+  <div class="stat-card" style="background:transparent;border:none" id="cardSecretary"><div class="stat-label"><span>📋 秘书</span><span class="stat-value" id="valSecretary" style="font-size:0.78rem">-</span></div></div>
+  <div class="stat-card" style="background:transparent;border:none" id="cardDriver"><div class="stat-label"><span>🚗 司机</span><span class="stat-value" id="valDriver" style="font-size:0.78rem">-</span></div></div>
+</section>
+
+  <div class="main-area">
+    <section class="panel-section">
+      <nav class="tab-nav">
+        <button class="tab-btn active" data-tab="gov">🏛️ 政务</button>
+        <button class="tab-btn" data-tab="personnel">👥 人事</button>
+        <button class="tab-btn" data-tab="finance">💰 财政</button>
+        <button class="tab-btn" data-tab="social">🤝 社交</button>
+        <button class="tab-btn" data-tab="personal">👤 个人</button><button class="tab-btn" data-tab="invest">📊 招商</button><button class="tab-btn" data-tab="inspection">🔍 暗访</button>
+      </nav>
+      <div class="tab-content">
+        <div class="tab-panel active" id="panelGov"><div class="panel-placeholder"><div class="emoji">🏛️</div><p>政务系统</p></div></div>
+        <div class="tab-panel" id="panelPersonnel"><div id="personnelContent"></div></div>
+        <div class="tab-panel" id="panelFinance"><div id="financeContent"></div></div>
+        <div class="tab-panel" id="panelSocial"><div class="panel-placeholder"><div class="emoji">🤝</div><p>社交活动</p></div></div>
+        <div class="tab-panel" id="panelPersonal"><div class="panel-placeholder"><div class="emoji">👤</div><p>个人发展</p></div></div><div class="tab-panel" id="panelInvest"><div id="investContent"></div></div><div class="tab-panel" id="panelInspection"><div id="inspectionContent"></div></div>
+      </div>
+    </section>
+    <section class="log-section">
+      <div class="log-header"><h3>📋 事件记录</h3><span class="log-count" id="logCount">0 条</span></div>
+      <div class="log-body" id="logBody"><div class="log-empty">暂无事件记录</div></div>
+    </section>
+  </div>
+</div>
+
+<div class="overlay" id="eventOverlay"><div class="overlay-card" style="max-width:520px;text-align:left"><div id="eventContent"></div></div></div>
+<div id="startScreen">
+  <div class="start-card">
+    <h1>🏛️ 官场模拟器</h1>
+    <div class="subtitle">从基层做起，步步高升</div>
+    <input class="name-input" id="nameInput" placeholder="请输入你的姓名" maxlength="10" autofocus>
+    <button class="start-btn" onclick="startNewGame()">🎯 开始游戏</button>
+    <div class="test-btn-wrap" id="loadBtnWrap">
+      <button class="start-btn secondary" id="btnLoadGame">📂 读取存档</button>
+      <div class="lp-hint" id="lpHint">长按 10 秒进入测试系统…</div>
+      <div class="lp-progress" id="lpProgress"></div>
+    </div>
+  </div>
+</div>
+<div id="examScreen"><div class="exam-card"><div id="examContent"></div></div></div>
+<div class="overlay" id="posOverlay">
+  <div class="overlay-card">
+    <h4 style="font-size:1.05rem;color:var(--red);margin-bottom:12px">选择职务</h4>
+    <div id="posOptions"></div>
+    <button class="save-btn" style="margin-top:12px;color:var(--text);background:var(--surface);border:1px solid var(--border)" onclick="hideOverlay()">取消</button>
+  </div>
+</div>
+
+<div class="overlay" id="voteOverlay">
+  <div class="overlay-card" style="max-width:420px"><div id="voteContent"></div></div>
+</div>
+
+<div class="overlay" id="loanOverlay">
+  <div class="overlay-card" style="max-width:380px"><div id="loanContent"></div></div>
+</div>
+
+<div class="overlay" id="fundOverlay">
+  <div class="overlay-card">
+    <div class="fund-icon" id="fundIcon">🚫</div>
+    <div class="fund-title" id="fundTitle">资金不足</div>
+    <div class="fund-detail" id="fundDetail"></div>
+    <button class="fund-btn" onclick="document.getElementById('fundOverlay').style.display='none'">确定</button>
+  </div>
+</div>
+
+<div class="overlay" id="inspectionOverlay"><div class="overlay-card" style="max-width:560px;text-align:left"><div id="inspectionOverlayContent"></div></div></div>
+
+<div class="overlay" id="testOverlay"><div class="overlay-card" style="max-width:560px;text-align:left"><div id="testContent"></div></div></div>
+
+<script>
+const MAX={STAMINA:100,MONEY:500,ACHIEVEMENT:500,REPUTATION:100,INTEGRITY:100,INSPECTION:100,FINANCE:10000};
+var RANKS=['科员','副科','正科','副处','正处','副厅','正厅','副部','正部','国家级'];
+var POSITIONS=[{level:0,title:'科员'},{level:1,title:'副镇长'},{level:2,title:'镇长'},{level:3,title:'副局长'},{level:4,title:null,options:['县委书记','县长','区长']},{level:5,title:'副市长'},{level:6,title:null,options:['市委书记','市长']},{level:7,title:'副省长'},{level:8,title:null,options:['省委书记','省长']},{level:9,title:'国务委员'}];
+var REGIONS=[{name:'临安县',level:0,finance:8000,economy:55,security:60,environment:65},{name:'云溪区',level:0,finance:8000,economy:65,security:50,environment:55},{name:'安平市',level:0,finance:8000,economy:45,security:70,environment:60},{name:'清河县',level:0,finance:8000,economy:50,security:55,environment:70},{name:'东源县',level:0,finance:8000,economy:42,security:65,environment:75},{name:'新安区',level:0,finance:8000,economy:70,security:55,environment:50},{name:'永嘉县',level:0,finance:8000,economy:48,security:60,environment:68},{name:'西河县',level:0,finance:8000,economy:40,security:58,environment:72},{name:'南埔区',level:0,finance:8000,economy:68,security:45,environment:52},{name:'北山县',level:0,finance:8000,economy:38,security:62,environment:80},{name:'平江县',level:0,finance:8000,economy:52,security:64,environment:58},{name:'阳和区',level:0,finance:8000,economy:62,security:48,environment:63},{name:'滨江市',level:1,finance:50000,economy:65,security:60,environment:58},{name:'洛河市',level:1,finance:50000,economy:58,security:65,environment:62},{name:'海川市',level:1,finance:50000,economy:72,security:55,environment:48},{name:'明州市',level:1,finance:50000,economy:68,security:58,environment:55},{name:'江源市',level:1,finance:50000,economy:55,security:62,environment:70},{name:'长丰市',level:1,finance:50000,economy:60,security:68,environment:52},{name:'临海市',level:1,finance:50000,economy:75,security:50,environment:45},{name:'北河市',level:1,finance:50000,economy:48,security:72,environment:60},{name:'东州市',level:1,finance:50000,economy:70,security:56,environment:54},{name:'南川市',level:1,finance:50000,economy:52,security:60,environment:68},{name:'西平市',level:1,finance:50000,economy:62,security:64,environment:56},{name:'泰安市',level:1,finance:50000,economy:66,security:54,environment:60},{name:'江南省',level:2,finance:300000,economy:72,security:60,environment:55},{name:'江北省',level:2,finance:300000,economy:60,security:65,environment:60},{name:'海东省',level:2,finance:300000,economy:78,security:52,environment:48},{name:'西川省',level:2,finance:300000,economy:50,security:68,environment:58},{name:'中南省',level:2,finance:300000,economy:65,security:62,environment:52},{name:'北疆省',level:2,finance:300000,economy:45,security:75,environment:62},{name:'中国',level:3,finance:20000000,economy:70,security:65,environment:55}];
+
+var EXAM_QUESTIONS=[{q:'下列哪项不属于公务员考核的内容？',o:['德','能','勤','利'],a:3},{q:'我国行政机关实行什么制度？',o:['首长负责制','委员会制','合议制','民主集中制'],a:0},{q:'上行下效体现的是哪种管理现象？',o:['组织传播','榜样示范','权威服从','层级衰减'],a:1},{q:'公共政策执行中最关键的环节是？',o:['政策制定','政策宣传','政策实施','政策评估'],a:2},{q:'以下哪种不属于领导决策方法？',o:['头脑风暴法','德尔菲法','回归分析法','名义群体法'],a:2},{q:'政府信息公开的主体是？',o:['行政机关','司法机关','立法机关','社会团体'],a:0},{q:'公共危机管理的首要原则是？',o:['效率原则','透明原则','预防原则','法治原则'],a:2},{q:'年度考核不称职的公务员应？',o:['降职','辞退','警告','降级'],a:0},{q:'最广泛的行政监督形式是？',o:['党内监督','司法监督','社会监督','行政监察'],a:2},{q:'以下哪个不是公共产品特征？',o:['非竞争性','非排他性','营利性','不可分割性'],a:2},{q:'放管服中放指的是？',o:['放开价格','放松管制','简政放权','放权让利'],a:2},{q:'行政组织设置不包括哪个原则？',o:['精简原则','统一原则','营利原则','效能原则'],a:2},{q:'公文发文字号应位于？',o:['版头','主体','版记','正文'],a:0},{q:'鲶鱼效应说明什么？',o:['竞争激励','危机意识','团队合作','领导力'],a:0},{q:'地方债务管理的核心原则？',o:['风险可控','规模扩张','效率优先','市场化'],a:0},{q:'以下哪种不属于行政执行环节？',o:['计划制定','组织动员','政策否决','指挥协调'],a:2},{q:'县官不如现管反映什么？',o:['官僚主义','基层执行偏差','权责不对等','层级过多'],a:1},{q:'行政伦理的核心要求是？',o:['效率优先','廉洁奉公','严格执法','服务领导'],a:1},{q:'政府绩效考核常用方法？',o:['KPI考核','360度评估','平衡计分卡','以上都是'],a:3},{q:'塔西佗陷阱指什么？',o:['权力腐败','公信力危机','决策失误','执行不力'],a:1},{q:'乡村振兴五大振兴不包括？',o:['产业振兴','人才振兴','科技振兴','组织振兴'],a:2},{q:'优化营商环境的核心是？',o:['减税降费','提升政府服务效能','增加投资','扩大出口'],a:1},{q:'三重一大不包括？',o:['重大决策','重大人事任免','重大项目安排','重大活动'],a:3},{q:'信访制度的主要功能是？',o:['化解矛盾','行政管理','法律监督','政策制定'],a:0}];
+
+var EVENTS = [
+{id:1,level:0,title:'黑恶势力举报',desc:'群众实名举报黑恶势力保护伞',options:[{text:'批示严查',effects:{stamina:-10,politicalScore:8,reputation:10,inspectionAttention:5}},{text:'暗中压下',effects:{stamina:-5,money:5,politicalScore:-5,reputation:-10,inspectionAttention:15}}]},
+{id:2,level:0,title:'集体上访',desc:'村民因征地补偿聚集上访',options:[{text:'接访解决',effects:{stamina:-15,money:-5,politicalScore:6,reputation:8}},{text:'避而不见',effects:{stamina:-5,politicalScore:-8,reputation:-20,inspectionAttention:10}}]},
+{id:3,level:0,title:'企业排污曝光',desc:'化工厂排污被曝光河水污染',options:[{text:'关停整改',effects:{stamina:-10,money:-8,politicalScore:5,reputation:8,inspectionAttention:3}},{text:'罚款了事',effects:{stamina:-3,money:5,politicalScore:-2,reputation:-5,inspectionAttention:8}}]},
+{id:4,level:0,title:'留守儿童意外',desc:'留守儿童溺水身亡家属要求负责',options:[{text:'安抚追责',effects:{stamina:-8,money:-3,politicalScore:3,reputation:6,inspectionAttention:2}},{text:'推诿冷处理',effects:{stamina:-2,politicalScore:-5,reputation:-12,inspectionAttention:5}}]},
+{id:5,level:0,title:'猪肉价格上涨',desc:'市场猪肉价格连续上涨',options:[{text:'平价投放',effects:{stamina:-5,money:-10,politicalScore:4,reputation:5}},{text:'不干预',effects:{politicalScore:-2,reputation:-8,inspectionAttention:3}}]},
+{id:6,level:0,title:'基层干部贪腐',desc:'乡镇干部挪用扶贫资金',options:[{text:'依法查处',effects:{stamina:-8,politicalScore:6,reputation:8,inspectionAttention:4}},{text:'调离了事',effects:{stamina:-2,money:3,politicalScore:-4,reputation:-5,inspectionAttention:10}}]},
+{id:7,level:0,title:'农村医保纠纷',desc:'住院报销比例被无故降低',options:[{text:'核查补发',effects:{stamina:-5,money:-3,politicalScore:3,reputation:5}},{text:'解释沟通',effects:{stamina:-2,politicalScore:-1,reputation:-3,inspectionAttention:2}}]},
+{id:8,level:0,title:'山体滑坡预警',desc:'暴雨导致地质灾害风险升高',options:[{text:'组织转移',effects:{stamina:-20,money:-5,politicalScore:5,reputation:10}},{text:'发布预警',effects:{stamina:-5,politicalScore:-3,reputation:-5}}]},
+{id:9,level:0,title:'学校食品安全',desc:'学生营养餐引发食物中毒',options:[{text:'追查问责',effects:{stamina:-8,money:-3,politicalScore:4,reputation:8,inspectionAttention:5}},{text:'赔偿私了',effects:{stamina:-3,money:5,politicalScore:-2,reputation:-5,inspectionAttention:10}}]},
+{id:10,level:0,title:'低保名额争议',desc:'低保名额分配不公优亲厚友',options:[{text:'重新核查',effects:{stamina:-5,politicalScore:3,reputation:6,inspectionAttention:2}},{text:'维持原判',effects:{stamina:-2,politicalScore:-3,reputation:-5,inspectionAttention:5}}]},
+{id:11,level:0,title:'招商引资困境',desc:'意向企业要求税收优惠',options:[{text:'给予优惠',effects:{stamina:-5,money:-10,politicalScore:8,reputation:5}},{text:'拒绝让利',effects:{stamina:-3,money:10,politicalScore:-2,reputation:3}}]},
+{id:12,level:0,title:'农贸市场整顿',desc:'商贩占道经营居民投诉',options:[{text:'规范管理',effects:{stamina:-8,money:-3,politicalScore:4,reputation:6}},{text:'集中取缔',effects:{stamina:-10,money:-2,politicalScore:-3,reputation:-8,inspectionAttention:3}}]},
+{id:13,level:0,title:'老干部待遇',desc:'退休老干部要求提高补贴',options:[{text:'酌情提高',effects:{stamina:-3,money:-8,politicalScore:2,reputation:3}},{text:'按政策办',effects:{stamina:-2,politicalScore:1}}]},
+{id:14,level:0,title:'烟花爆竹事故',desc:'非法作坊爆炸造成伤亡',options:[{text:'全力救治',effects:{stamina:-15,money:-5,politicalScore:3,reputation:6,inspectionAttention:3}},{text:'低调处理',effects:{stamina:-5,money:3,politicalScore:-5,reputation:-8,inspectionAttention:10}}]},
+{id:15,level:0,title:'乡村道路建设',desc:'修路项目资金缺口大',options:[{text:'协调资金',effects:{stamina:-8,money:-10,politicalScore:6,reputation:8}},{text:'向上申报',effects:{stamina:-5,money:-2,politicalScore:3,reputation:4}}]},
+{id:16,level:0,title:'基层形式主义',desc:'上级检查过多基层不堪重负',options:[{text:'精简减负',effects:{stamina:-5,politicalScore:3,reputation:5}},{text:'照常迎检',effects:{stamina:-2,politicalScore:-2,reputation:-3}}]},
+{id:17,level:0,title:'土地流转纠纷',desc:'流转费引发激烈冲突',options:[{text:'居中调解',effects:{stamina:-8,money:-3,politicalScore:4,reputation:6}},{text:'偏袒大户',effects:{stamina:-3,money:5,politicalScore:-5,reputation:-10,inspectionAttention:8}}]},
+{id:18,level:0,title:'宗教场所违建',desc:'私自修建庙宇占用耕地',options:[{text:'依法拆除',effects:{stamina:-10,money:-5,politicalScore:3,reputation:2,inspectionAttention:4}},{text:'罚款保留',effects:{stamina:-3,money:5,politicalScore:-3,reputation:-5,inspectionAttention:10}}]},
+{id:19,level:0,title:'农田灌溉困难',desc:'水利设施年久失修',options:[{text:'拨款抢修',effects:{stamina:-10,money:-8,politicalScore:5,reputation:8}},{text:'向上反映',effects:{stamina:-3,money:-2,politicalScore:2,reputation:3}}]},
+{id:20,level:0,title:'网吧接纳未成年人',desc:'网吧违规接纳未成年人',options:[{text:'从严处罚',effects:{stamina:-5,politicalScore:3,reputation:5}},{text:'警告整改',effects:{stamina:-2,money:2,politicalScore:-1,reputation:-2}}]},
+{id:21,level:0,title:'村霸欺压百姓',desc:'村主任欺压村民操纵选举',options:[{text:'立案打掉',effects:{stamina:-12,politicalScore:8,reputation:12,inspectionAttention:5}},{text:'调离岗位',effects:{stamina:-3,money:3,politicalScore:-2,reputation:-5,inspectionAttention:10}}]},
+{id:22,level:0,title:'禽流感疫情',desc:'发现禽流感养殖户损失惨重',options:[{text:'扑杀补偿',effects:{stamina:-15,money:-10,politicalScore:4,reputation:8}},{text:'局部封锁',effects:{stamina:-8,money:-3,politicalScore:1,reputation:3}}]},
+{id:23,level:0,title:'矿山安全隐患',desc:'矿主无视安全规定',options:[{text:'停产整顿',effects:{stamina:-10,money:-8,politicalScore:5,reputation:6,inspectionAttention:3}},{text:'警告继续',effects:{stamina:-3,money:5,politicalScore:-3,reputation:-5,inspectionAttention:10}}]},
+{id:24,level:0,title:'留守儿童关爱',desc:'留守儿童心理健康问题严重',options:[{text:'建关爱体系',effects:{stamina:-8,money:-5,politicalScore:5,reputation:10}},{text:'发文要求',effects:{stamina:-3,politicalScore:2,reputation:3}}]},
+{id:25,level:0,title:'抗旱救灾不力',desc:'救灾物资发放不及时',options:[{text:'追查重分',effects:{stamina:-8,money:-3,politicalScore:3,reputation:6,inspectionAttention:3}},{text:'解释困难',effects:{stamina:-2,politicalScore:-3,reputation:-5,inspectionAttention:5}}]},
+{id:26,level:0,title:'农村电商扶持',desc:'农产品滞销需电商扶持',options:[{text:'补贴培训',effects:{stamina:-8,money:-10,politicalScore:6,reputation:8}},{text:'不加干预',effects:{stamina:-2,politicalScore:1,reputation:2}}]},
+{id:27,level:0,title:'宗教渗透隐患',desc:'境外势力借宗教渗透',options:[{text:'依法取缔',effects:{stamina:-8,politicalScore:4,reputation:5,inspectionAttention:2}},{text:'暂不处理',effects:{stamina:-3,politicalScore:-2,reputation:-3,inspectionAttention:5}}]},
+{id:28,level:0,title:'村务公开争议',desc:'村民要求公开集体账目',options:[{text:'强制公开',effects:{stamina:-5,politicalScore:4,reputation:8,inspectionAttention:2}},{text:'解释安抚',effects:{stamina:-2,politicalScore:-3,reputation:-5,inspectionAttention:3}}]},
+{id:29,level:0,title:'小微企业融资难',desc:'小微企业面临倒闭潮',options:[{text:'协调贷款',effects:{stamina:-8,money:-10,politicalScore:6,reputation:6}},{text:'申报资金',effects:{stamina:-5,money:-3,politicalScore:3,reputation:3}}]},
+{id:30,level:0,title:'农村赌博泛滥',desc:'聚赌严重影响社会稳定',options:[{text:'集中打击',effects:{stamina:-10,money:-3,politicalScore:5,reputation:8,inspectionAttention:3}},{text:'宣传教育',effects:{stamina:-3,politicalScore:0,reputation:-2}}]},
+{id:31,level:1,title:'房地产泡沫风险',desc:'楼市过热资金链断裂',options:[{text:'限价限购',effects:{stamina:-10,money:-5,politicalScore:5,reputation:5}},{text:'不干预',effects:{stamina:-2,money:10,politicalScore:-3,reputation:-5,inspectionAttention:5}}]},
+{id:32,level:1,title:'群体劳资纠纷',desc:'工厂拖欠工资工人堵路',options:[{text:'责令支付',effects:{stamina:-10,money:-5,politicalScore:6,reputation:8,inspectionAttention:3}},{text:'协调分期',effects:{stamina:-5,money:3,politicalScore:2,reputation:3,inspectionAttention:5}}]},
+{id:33,level:1,title:'环境污染督查',desc:'环保督察发现问题企业',options:[{text:'全面关停',effects:{stamina:-15,money:-15,politicalScore:8,reputation:10,inspectionAttention:5}},{text:'限期整改',effects:{stamina:-5,money:5,politicalScore:-2,reputation:-5,inspectionAttention:10}}]},
+{id:34,level:1,title:'医疗事故风波',desc:'市医院发生重大医疗事故',options:[{text:'公开道歉',effects:{stamina:-10,money:-8,politicalScore:3,reputation:5,inspectionAttention:4}},{text:'控制舆情',effects:{stamina:-5,money:5,politicalScore:-3,reputation:-8,inspectionAttention:10}}]},
+{id:35,level:1,title:'出租车罢运',desc:'司机因份子钱过高罢运',options:[{text:'降低份子钱',effects:{stamina:-8,money:-5,politicalScore:5,reputation:6}},{text:'依法处置',effects:{stamina:-5,politicalScore:-3,reputation:-5,inspectionAttention:5}}]},
+{id:36,level:1,title:'重大交通事故',desc:'国道特大交通事故多人死伤',options:[{text:'亲赴现场',effects:{stamina:-20,money:-5,politicalScore:6,reputation:10}},{text:'远程指挥',effects:{stamina:-5,politicalScore:2,reputation:3}}]},
+{id:37,level:1,title:'高考舞弊案',desc:'高考集体舞弊涉及教育系统',options:[{text:'从严查处',effects:{stamina:-12,money:-3,politicalScore:5,reputation:6,inspectionAttention:6}},{text:'内部处理',effects:{stamina:-5,money:5,politicalScore:-4,reputation:-8,inspectionAttention:12}}]},
+{id:38,level:1,title:'黑导游宰客',desc:'黑导游强迫购物被曝光',options:[{text:'专项整治',effects:{stamina:-8,money:-3,politicalScore:4,reputation:6}},{text:'罚款整改',effects:{stamina:-3,money:2,politicalScore:-1,reputation:-3}}]},
+{id:39,level:1,title:'城市内涝',desc:'暴雨导致城市严重内涝',options:[{text:'加快排水',effects:{stamina:-10,money:-8,politicalScore:3,reputation:6}},{text:'常规处置',effects:{stamina:-5,money:-2,politicalScore:1,reputation:3}}]},
+{id:40,level:1,title:'食品安全检查',desc:'多地食品安全问题',options:[{text:'拉网检查',effects:{stamina:-12,money:-8,politicalScore:5,reputation:8,inspectionAttention:3}},{text:'重点抽查',effects:{stamina:-5,money:-3,politicalScore:2,reputation:4}}]},
+{id:41,level:1,title:'养老院乱象',desc:'养老院虐待老人',options:[{text:'严肃追责',effects:{stamina:-10,money:-5,politicalScore:5,reputation:8,inspectionAttention:4}},{text:'约谈整改',effects:{stamina:-5,politicalScore:2,reputation:3}}]},
+{id:42,level:1,title:'科技园区招商',desc:'招商竞争激烈',options:[{text:'给足优惠',effects:{stamina:-10,money:-15,politicalScore:8,reputation:5}},{text:'理性招商',effects:{stamina:-3,money:5,politicalScore:3,reputation:3}}]},
+{id:43,level:1,title:'信访积案化解',desc:'多年积案要求限期化解',options:[{text:'亲自包案',effects:{stamina:-15,money:-3,politicalScore:6,reputation:8}},{text:'程序办理',effects:{stamina:-5,politicalScore:3,reputation:3}}]},
+{id:44,level:1,title:'公交涨价',desc:'公交申请调价市民反对',options:[{text:'补贴不涨',effects:{stamina:-5,money:-10,politicalScore:3,reputation:8}},{text:'适度调价',effects:{stamina:-3,money:3,politicalScore:1,reputation:-3}}]},
+{id:45,level:1,title:'基层医疗不足',desc:'乡镇卫生院设备落后',options:[{text:'加大投入',effects:{stamina:-10,money:-12,politicalScore:6,reputation:10}},{text:'向上申请',effects:{stamina:-5,money:-3,politicalScore:3,reputation:4}}]},
+{id:46,level:1,title:'烂尾楼处置',desc:'楼盘烂尾购房者维权',options:[{text:'协调盘活',effects:{stamina:-15,money:-10,politicalScore:5,reputation:8}},{text:'司法处置',effects:{stamina:-8,politicalScore:3,reputation:3,inspectionAttention:3}}]},
+{id:47,level:1,title:'文明创建',desc:'文明检查在即需整治市容',options:[{text:'全力整治',effects:{stamina:-20,money:-10,politicalScore:8,reputation:6}},{text:'重点检查',effects:{stamina:-10,money:-5,politicalScore:4,reputation:3}}]},
+{id:48,level:1,title:'扫黑除恶回头看',desc:'督导组发现黑恶打而不绝',options:[{text:'深挖彻查',effects:{stamina:-15,money:-5,politicalScore:8,reputation:12,inspectionAttention:5}},{text:'解释过关',effects:{stamina:-5,money:5,politicalScore:-3,reputation:-5,inspectionAttention:12}}]},
+{id:49,level:1,title:'网络舆情危机',desc:'负面事件被网络放大',options:[{text:'及时回应',effects:{stamina:-8,money:-3,politicalScore:5,reputation:8}},{text:'冷处理',effects:{stamina:-3,politicalScore:-3,reputation:-8,inspectionAttention:5}}]},
+{id:50,level:1,title:'数据造假被查',desc:'统计数据造假被上级发现',options:[{text:'主动认错',effects:{stamina:-10,money:-5,politicalScore:3,reputation:5,inspectionAttention:6}},{text:'推诿辩解',effects:{stamina:-5,money:5,politicalScore:-5,reputation:-8,inspectionAttention:12}}]},
+{id:51,level:2,title:'跨省流域污染',desc:'河流排污致下游抗议',options:[{text:'联合治理',effects:{stamina:-15,money:-15,politicalScore:8,reputation:10,inspectionAttention:5}},{text:'辩称推卸',effects:{stamina:-5,money:5,politicalScore:-5,reputation:-10,inspectionAttention:10}}]},
+{id:52,level:2,title:'腐败窝案',desc:'多名厅级干部被查',options:[{text:'配合查处',effects:{stamina:-15,money:-5,politicalScore:10,reputation:12,inspectionAttention:8}},{text:'内部消化',effects:{stamina:-8,money:10,politicalScore:-8,reputation:-10,inspectionAttention:20}}]},
+{id:53,level:2,title:'金融风险',desc:'P2P暴雷投资者围堵',options:[{text:'强力追赃',effects:{stamina:-15,money:-10,politicalScore:6,reputation:8,inspectionAttention:3}},{text:'登记清偿',effects:{stamina:-8,politicalScore:2,reputation:3}}]},
+{id:54,level:2,title:'国企改革',desc:'国企亏损引抗议',options:[{text:'稳步推进',effects:{stamina:-15,money:-15,politicalScore:10,reputation:8}},{text:'放缓改革',effects:{stamina:-8,money:5,politicalScore:3,reputation:3}}]},
+{id:55,level:2,title:'特大安全事故',desc:'矿难造成重大伤亡',options:[{text:'亲赴现场',effects:{stamina:-25,money:-10,politicalScore:8,reputation:12,inspectionAttention:6}},{text:'小组追责',effects:{stamina:-10,money:-3,politicalScore:4,reputation:5,inspectionAttention:5}}]},
+{id:56,level:2,title:'高考移民',desc:'外省考生迁入引抗议',options:[{text:'严查打击',effects:{stamina:-10,money:-3,politicalScore:5,reputation:8,inspectionAttention:3}},{text:'规范政策',effects:{stamina:-5,politicalScore:3,reputation:4}}]},
+{id:57,level:2,title:'宗教极端势力',desc:'境外势力渗透',options:[{text:'严厉打击',effects:{stamina:-15,money:-5,politicalScore:6,reputation:8,inspectionAttention:5}},{text:'严密监控',effects:{stamina:-8,politicalScore:4,reputation:5,inspectionAttention:3}}]},
+{id:58,level:2,title:'重大洪涝灾害',desc:'全省暴雨告急',options:[{text:'全省动员',effects:{stamina:-30,money:-20,politicalScore:10,reputation:15}},{text:'预案响应',effects:{stamina:-15,money:-8,politicalScore:5,reputation:8}}]},
+{id:59,level:2,title:'医改试点',desc:'国家确定试点',options:[{text:'先行先试',effects:{stamina:-15,money:-15,politicalScore:12,reputation:10}},{text:'稳妥推进',effects:{stamina:-8,politicalScore:5,reputation:5}}]},
+{id:60,level:2,title:'产业调整',desc:'产能过剩需安置',options:[{text:'有序退出',effects:{stamina:-20,money:-20,politicalScore:10,reputation:8}},{text:'逐步压缩',effects:{stamina:-10,money:-5,politicalScore:5,reputation:5}}]},
+{id:61,level:2,title:'土地财政',desc:'土地收入锐减',options:[{text:'开辟税源',effects:{stamina:-10,money:-15,politicalScore:6,reputation:5}},{text:'发债维持',effects:{stamina:-5,money:-8,politicalScore:3,reputation:2}}]},
+{id:62,level:2,title:'省际高铁',desc:'高铁规划争议',options:[{text:'科学决策',effects:{stamina:-15,money:-20,politicalScore:10,reputation:8}},{text:'折中方案',effects:{stamina:-10,money:-10,politicalScore:6,reputation:5}}]},
+{id:63,level:2,title:'高校学术造假',desc:'教授论文造假',options:[{text:'严肃查处',effects:{stamina:-10,money:-5,politicalScore:5,reputation:6,inspectionAttention:4}},{text:'淡化处理',effects:{stamina:-5,politicalScore:-2,reputation:-5,inspectionAttention:8}}]},
+{id:64,level:2,title:'营商环境',desc:'本省位次下滑',options:[{text:'全面改革',effects:{stamina:-15,money:-10,politicalScore:10,reputation:8}},{text:'局部改善',effects:{stamina:-8,money:-3,politicalScore:5,reputation:4}}]},
+{id:65,level:2,title:'边境走私',desc:'走私猖獗',options:[{text:'联合行动',effects:{stamina:-15,money:-8,politicalScore:6,reputation:8,inspectionAttention:4}},{text:'加强巡查',effects:{stamina:-8,money:-3,politicalScore:3,reputation:4}}]},
+{id:66,level:2,title:'农民工讨薪',desc:'年底讨薪频发',options:[{text:'专项治理',effects:{stamina:-10,money:-8,politicalScore:6,reputation:10}},{text:'建预警机制',effects:{stamina:-5,money:-3,politicalScore:4,reputation:6}}]},
+{id:67,level:2,title:'科技创新',desc:'企业世界级突破',options:[{text:'全力支持',effects:{stamina:-10,money:-15,politicalScore:12,reputation:8}},{text:'政策跟进',effects:{stamina:-5,money:-5,politicalScore:8,reputation:5}}]},
+{id:68,level:2,title:'信访改革',desc:'推进信访改革',options:[{text:'试点推广',effects:{stamina:-12,money:-5,politicalScore:8,reputation:8}},{text:'落实要求',effects:{stamina:-5,politicalScore:4,reputation:4}}]},
+{id:69,level:2,title:'民族地区稳定',desc:'不稳定苗头',options:[{text:'深入化解',effects:{stamina:-15,money:-8,politicalScore:6,reputation:10,inspectionAttention:3}},{text:'加强监控',effects:{stamina:-8,politicalScore:3,reputation:4,inspectionAttention:4}}]},
+{id:70,level:2,title:'大气污染',desc:'雾霾跨省污染',options:[{text:'铁腕治污',effects:{stamina:-20,money:-15,politicalScore:10,reputation:12,inspectionAttention:4}},{text:'常规治理',effects:{stamina:-10,money:-5,politicalScore:4,reputation:5}}]},
+{id:71,level:2,title:'国企薪酬',desc:'高管薪酬引质疑',options:[{text:'规范监管',effects:{stamina:-8,money:-5,politicalScore:5,reputation:8,inspectionAttention:3}},{text:'维持现状',effects:{stamina:-3,politicalScore:-2,reputation:-5,inspectionAttention:5}}]},
+{id:72,level:2,title:'重大活动安保',desc:'国家级活动',options:[{text:'周密部署',effects:{stamina:-25,money:-15,politicalScore:10,reputation:8}},{text:'常规安保',effects:{stamina:-12,money:-5,politicalScore:5,reputation:4}}]},
+{id:73,level:2,title:'PPP项目风险',desc:'违规隐性债务',options:[{text:'全面清理',effects:{stamina:-15,money:-10,politicalScore:6,reputation:6,inspectionAttention:5}},{text:'分类化解',effects:{stamina:-8,money:-3,politicalScore:3,reputation:3}}]},
+{id:74,level:2,title:'科技成果转化',desc:'产学研脱节',options:[{text:'搭建平台',effects:{stamina:-10,money:-12,politicalScore:8,reputation:6}},{text:'政策鼓励',effects:{stamina:-5,money:-5,politicalScore:5,reputation:4}}]},
+{id:75,level:2,title:'养老基金缺口',desc:'收支矛盾',options:[{text:'财政补充',effects:{stamina:-10,money:-20,politicalScore:6,reputation:5}},{text:'延缓调整',effects:{stamina:-5,money:-8,politicalScore:2,reputation:2}}]},
+{id:76,level:2,title:'旅游市场整顿',desc:'景区欺客',options:[{text:'从严整治',effects:{stamina:-15,money:-10,politicalScore:6,reputation:10,inspectionAttention:4}},{text:'道歉整改',effects:{stamina:-8,money:-3,politicalScore:3,reputation:5}}]},
+{id:77,level:2,title:'机关作风',desc:'效率低下推诿',options:[{text:'专项整治',effects:{stamina:-10,money:-3,politicalScore:6,reputation:8}},{text:'发文要求',effects:{stamina:-5,politicalScore:3,reputation:4}}]},
+{id:78,level:2,title:'人才争夺',desc:'人才流失',options:[{text:'优厚政策',effects:{stamina:-10,money:-15,politicalScore:10,reputation:6}},{text:'优化环境',effects:{stamina:-5,money:-5,politicalScore:6,reputation:4}}]},
+{id:79,level:2,title:'农业现代化',desc:'转型缓慢',options:[{text:'扶持龙头',effects:{stamina:-10,money:-12,politicalScore:8,reputation:8}},{text:'技术推广',effects:{stamina:-5,money:-5,politicalScore:5,reputation:5}}]},
+{id:80,level:2,title:'机构改革',desc:'省级机构改革',options:[{text:'坚决执行',effects:{stamina:-15,money:-5,politicalScore:8,reputation:6,inspectionAttention:3}},{text:'渐进过渡',effects:{stamina:-8,politicalScore:5,reputation:4}}]},
+{id:81,level:3,title:'全球经济危机',desc:'出口下滑',options:[{text:'刺激内需',effects:{stamina:-20,money:-20,politicalScore:12,reputation:8}},{text:'稳健政策',effects:{stamina:-10,money:-8,politicalScore:6,reputation:5}}]},
+{id:82,level:3,title:'外交争端',desc:'贸易摩擦',options:[{text:'外交斡旋',effects:{stamina:-15,money:-15,politicalScore:10,reputation:10}},{text:'坚定立场',effects:{stamina:-10,money:-10,politicalScore:8,reputation:12}}]},
+{id:83,level:3,title:'特大疫情',desc:'威胁生命健康',options:[{text:'举国动员',effects:{stamina:-35,money:-30,politicalScore:15,reputation:20,inspectionAttention:5}},{text:'分区管理',effects:{stamina:-20,money:-15,politicalScore:8,reputation:10}}]},
+{id:84,level:3,title:'金融风险',desc:'影子银行风险',options:[{text:'去杠杆',effects:{stamina:-15,money:-20,politicalScore:10,reputation:8,inspectionAttention:3}},{text:'渐进化解',effects:{stamina:-8,money:-10,politicalScore:6,reputation:5}}]},
+{id:85,level:3,title:'军事冲突',desc:'地区冲突',options:[{text:'斡旋戒备',effects:{stamina:-15,money:-15,politicalScore:8,reputation:15}},{text:'呼吁克制',effects:{stamina:-10,money:-5,politicalScore:5,reputation:8}}]},
+{id:86,level:3,title:'粮食安全',desc:'粮价暴涨',options:[{text:'释放储备',effects:{stamina:-10,money:-15,politicalScore:8,reputation:10}},{text:'加强进口',effects:{stamina:-8,money:-12,politicalScore:6,reputation:6}}]},
+{id:87,level:3,title:'特大自然灾害',desc:'特大灾害',options:[{text:'全国动员',effects:{stamina:-30,money:-30,politicalScore:15,reputation:20,inspectionAttention:3}},{text:'分级响应',effects:{stamina:-15,money:-15,politicalScore:8,reputation:10}}]},
+{id:88,level:3,title:'科技突破',desc:'世界领先',options:[{text:'推广产业',effects:{stamina:-10,money:-20,politicalScore:15,reputation:12}},{text:'表彰投入',effects:{stamina:-5,money:-10,politicalScore:10,reputation:8}}]},
+{id:89,level:3,title:'分裂势力',desc:'分裂分子袭击',options:[{text:'依法惩处',effects:{stamina:-15,money:-10,politicalScore:8,reputation:12,inspectionAttention:5}},{text:'防范监控',effects:{stamina:-10,money:-5,politicalScore:5,reputation:8}}]},
+{id:90,level:3,title:'社会保障改革',desc:'养老统筹',options:[{text:'强力推动',effects:{stamina:-20,money:-20,politicalScore:12,reputation:10}},{text:'分步实施',effects:{stamina:-10,money:-10,politicalScore:8,reputation:6}}]},
+{id:91,level:3,title:'体育赛事',desc:'国际赛事',options:[{text:'全力筹备',effects:{stamina:-25,money:-30,politicalScore:15,reputation:15}},{text:'节俭办赛',effects:{stamina:-15,money:-15,politicalScore:10,reputation:10}}]},
+{id:92,level:3,title:'反腐败',desc:'国际合作追赃',options:[{text:'深化合作',effects:{stamina:-10,money:-5,politicalScore:10,reputation:12,inspectionAttention:4}},{text:'稳步推进',effects:{stamina:-5,politicalScore:8,reputation:8}}]},
+{id:93,level:3,title:'房地产长效机制',desc:'市场机制',options:[{text:'租购并举',effects:{stamina:-15,money:-15,politicalScore:12,reputation:10}},{text:'因城施策',effects:{stamina:-10,money:-8,politicalScore:8,reputation:6}}]},
+{id:94,level:3,title:'扶贫攻坚',desc:'决胜阶段',options:[{text:'挂牌督战',effects:{stamina:-20,money:-20,politicalScore:15,reputation:18}},{text:'巩固成果',effects:{stamina:-12,money:-10,politicalScore:10,reputation:12}}]},
+{id:95,level:3,title:'国防现代化',desc:'加快国防建设',options:[{text:'加大投入',effects:{stamina:-10,money:-25,politicalScore:10,reputation:12}},{text:'稳步推进',effects:{stamina:-5,money:-15,politicalScore:8,reputation:8}}]},
+{id:96,level:3,title:'人口老龄化',desc:'养老医疗压力',options:[{text:'鼓励生育',effects:{stamina:-15,money:-20,politicalScore:10,reputation:10}},{text:'延迟退休',effects:{stamina:-10,money:-10,politicalScore:6,reputation:6}}]},
+{id:97,level:3,title:'网络安全',desc:'网络攻击',options:[{text:'加强防御',effects:{stamina:-15,money:-15,politicalScore:10,reputation:10,inspectionAttention:3}},{text:'完善法规',effects:{stamina:-10,money:-8,politicalScore:6,reputation:6}}]},
+{id:98,level:3,title:'能源转型',desc:'双碳调整',options:[{text:'推广清洁',effects:{stamina:-20,money:-30,politicalScore:15,reputation:12}},{text:'有序替代',effects:{stamina:-12,money:-15,politicalScore:8,reputation:8}}]},
+{id:99,level:3,title:'中美贸易战',desc:'关税影响',options:[{text:'谈判主动',effects:{stamina:-15,money:-20,politicalScore:10,reputation:8}},{text:'扩内需',effects:{stamina:-10,money:-12,politicalScore:8,reputation:6}}]},
+{id:100,level:3,title:'医疗改革',desc:'分级诊疗',options:[{text:'全面推进',effects:{stamina:-20,money:-20,politicalScore:12,reputation:10}},{text:'试点推广',effects:{stamina:-10,money:-10,politicalScore:8,reputation:6}}]},
+{id:101,level:3,title:'教育改革',desc:'教育公平',options:[{text:'深化改革',effects:{stamina:-15,money:-15,politicalScore:10,reputation:12}},{text:'巩固推进',effects:{stamina:-8,money:-8,politicalScore:6,reputation:8}}]},
+{id:102,level:3,title:'反垄断',desc:'平台垄断',options:[{text:'依法监管',effects:{stamina:-10,money:-10,politicalScore:10,reputation:12,inspectionAttention:3}},{text:'柔性监管',effects:{stamina:-5,money:-5,politicalScore:6,reputation:6}}]},
+{id:103,level:3,title:'极端天气',desc:'灾害频发',options:[{text:'加大预警',effects:{stamina:-15,money:-20,politicalScore:10,reputation:10}},{text:'增强预案',effects:{stamina:-8,money:-10,politicalScore:6,reputation:6}}]},
+{id:104,level:3,title:'粤港澳大湾区',desc:'制度壁垒',options:[{text:'制度对接',effects:{stamina:-15,money:-20,politicalScore:12,reputation:10}},{text:'协调推进',effects:{stamina:-8,money:-10,politicalScore:8,reputation:6}}]},
+{id:105,level:3,title:'债务风险',desc:'隐性债务',options:[{text:'严格管控',effects:{stamina:-15,money:-15,politicalScore:8,reputation:6,inspectionAttention:4}},{text:'借新还旧',effects:{stamina:-8,money:-8,politicalScore:4,reputation:3,inspectionAttention:5}}]},
+{id:106,level:3,title:'乡村振兴',desc:'制度安排',options:[{text:'全面振兴',effects:{stamina:-20,money:-25,politicalScore:15,reputation:15}},{text:'重点突破',effects:{stamina:-10,money:-12,politicalScore:10,reputation:10}}]},
+{id:107,level:3,title:'国际形象',desc:'舆论环境',options:[{text:'主动发声',effects:{stamina:-10,money:-10,politicalScore:8,reputation:12}},{text:'实绩说话',effects:{stamina:-5,money:-5,politicalScore:5,reputation:8}}]},
+{id:108,level:3,title:'水利工程',desc:'生态移民挑战',options:[{text:'科学论证',effects:{stamina:-15,money:-25,politicalScore:10,reputation:8}},{text:'优化方案',effects:{stamina:-8,money:-12,politicalScore:6,reputation:5}}]},
+{id:109,level:3,title:'基层治理',desc:'治理现代化',options:[{text:'赋权减负',effects:{stamina:-15,money:-10,politicalScore:10,reputation:12}},{text:'规范提升',effects:{stamina:-8,money:-5,politicalScore:6,reputation:8}}]},
+{id:110,level:3,title:'数据安全',desc:'数字经济立法',options:[{text:'人大立法',effects:{stamina:-10,money:-8,politicalScore:8,reputation:8}},{text:'部委规章',effects:{stamina:-5,money:-3,politicalScore:5,reputation:5}}]},
+{id:111,level:3,title:'航天事业',desc:'空间站突破',options:[{text:'加大投入',effects:{stamina:-5,money:-20,politicalScore:12,reputation:15}},{text:'稳扎稳打',effects:{stamina:-3,money:-10,politicalScore:8,reputation:10}}]},
+{id:112,level:3,title:'生态文明',desc:'严格环保',options:[{text:'最严制度',effects:{stamina:-15,money:-20,politicalScore:12,reputation:15,inspectionAttention:3}},{text:'完善法规',effects:{stamina:-8,money:-10,politicalScore:8,reputation:10}}]},
+{id:113,level:3,title:'职业教育',desc:'人才短缺',options:[{text:'产教融合',effects:{stamina:-10,money:-15,politicalScore:10,reputation:8}},{text:'政策引导',effects:{stamina:-5,money:-8,politicalScore:6,reputation:5}}]},
+{id:114,level:3,title:'海洋权益',desc:'维权复杂',options:[{text:'加强巡航',effects:{stamina:-10,money:-15,politicalScore:8,reputation:12}},{text:'外交解决',effects:{stamina:-5,money:-8,politicalScore:5,reputation:8}}]},
+{id:115,level:3,title:'医疗卫生',desc:'公卫短板',options:[{text:'加大投入',effects:{stamina:-20,money:-25,politicalScore:12,reputation:15}},{text:'逐步改善',effects:{stamina:-10,money:-12,politicalScore:8,reputation:8}}]},
+{id:116,level:3,title:'新型城镇化',desc:'户籍改革',options:[{text:'户籍改革',effects:{stamina:-15,money:-15,politicalScore:10,reputation:10}},{text:'分类施策',effects:{stamina:-8,money:-8,politicalScore:6,reputation:6}}]},
+{id:117,level:3,title:'知识产权',desc:'保护不足',options:[{text:'严惩侵权',effects:{stamina:-10,money:-8,politicalScore:8,reputation:10,inspectionAttention:3}},{text:'加强执法',effects:{stamina:-5,money:-3,politicalScore:5,reputation:6}}]},
+{id:118,level:3,title:'碳中和',desc:'能源转型',options:[{text:'有序转型',effects:{stamina:-20,money:-25,politicalScore:12,reputation:10}},{text:'稳妥达峰',effects:{stamina:-10,money:-12,politicalScore:8,reputation:6}}]},
+{id:119,level:3,title:'贸易保护',desc:'全球挑战',options:[{text:'多元市场',effects:{stamina:-10,money:-15,politicalScore:10,reputation:8}},{text:'双循环',effects:{stamina:-8,money:-10,politicalScore:8,reputation:6}}]},
+{id:120,level:3,title:'共同富裕',desc:'分配制度',options:[{text:'初次再分配',effects:{stamina:-15,money:-20,politicalScore:12,reputation:15}},{text:'完善社保',effects:{stamina:-8,money:-10,politicalScore:8,reputation:10}}]}
+];
+
+const state = { round:1, month:1, year:2024, playerName:'未知', workAge:0, age:22, rankLevel:0, position:'科员', regionIdx:0, regionTenure:1, transferCooldown:0, promoCooldown:0, promoVoteCooldown:0, loanAmount:0, govLoanAmount:0, taxRate:50, baseTax:100, econGrowth:0, taxCooldown:0, lastTaxAdj:0, highTaxCount:0, lowTaxCount:0, taxCoeff:{repCoeff:0.3,ecoCoeff:0.2,invCoeff:0.008,corrCoeff:0.2}, superviseField:null, fieldChangeCooldown:0, teamCohesion:100, investProjects:[], completedProjects:[], failedProjects:[], investUsedNames:{}, totalInvested:0, totalSuccess:0, annualInvest:{year:2024,targetProj:3,targetInvest:3000,curProj:0,curInvest:0}, taxHist:[], repHist:[], isMainOfficial:false, subordinates:[], corruptionCount:0, rejectCorruptionCount:0, achievements:[], health:'良好', hotPublicOpinion:0, cadreRank:'-', leadership:{}, faction:{}, marriage:null, family:{}, peerData:[], favorDebt:[], secretary:null, driver:null, receptionRecord:[], inspectionTeam:{}, attributes:{ stamina:80, personalMoney:50, politicalScore:0, reputation:60, integrity:75, inspectionAttention:0, governmentFunds:5000 }, subsystems:{ government:{}, personnel:{}, finance:{}, social:{}, personal:{} }, eventPools:{ 0:{triggeredIds:[],resetCount:0,totalTriggered:0}, 1:{triggeredIds:[],resetCount:0,totalTriggered:0}, 2:{triggeredIds:[],resetCount:0,totalTriggered:0}, 3:{triggeredIds:[],resetCount:0,totalTriggered:0} }, pendingEvents:[], eventInProgress:false, _logs:[], _nextLogId:0, lastInspectionTurn:0, inspectionHistory:[], concealedRecords:[] };
+
+function getRegion(){ return REGIONS[state.regionIdx]; }
+function getRankName(){ return RANKS[state.rankLevel]||'未知'; }
+function getPosition(){ return state.position; }
+function getRankDisplay(){ return getRankName()+(state.superviseField?'（分管'+state.superviseField+'）':''); }
+function getRegionLevelName(lv){ return ['县级','市级','省级','国家级'][lv]||'未知'; }
+function getWorkAge(){ return Math.floor(state.round/4); }
+var SALARY=[0.6,0.8,1.0,1.2,1.5,1.8,2.0,2.5,3.0,4.0];
+
+function addLog(m,t){ if(state._logs.length>=500)state._logs.splice(0,50); var id=++state._nextLogId; var e={id: id,round:state.round,message:m,type:t||'info'}; state._logs.push(e); renderLog(e); updateLogCount(); return id; }
+function renderLog(e){ var b=document.getElementById('logBody'); if(!b)return; var x=b.querySelector('.log-empty'); if(x)x.remove(); var d=document.createElement('div'); d.className='log-entry log-'+e.type; d.dataset.logId=e.id; d.innerHTML='<span class="log-round">[第'+e.round+'回合]</span> '+e.message; b.appendChild(d); b.scrollTop=b.scrollHeight; }
+function updateLogCount(){ var e=document.getElementById('logCount'); if(e)e.textContent=state._logs.length+' 条'; }
+function setBar(id,v,mx){ var e=document.getElementById(id); if(!e)return; e.style.width=(mx?Math.min(100,Math.max(0,(v/mx)*100)):Math.max(0,Math.min(100,v)))+'%'; }
+function setVal(id,v){ var e=document.getElementById(id); if(e)e.textContent=v; }
+function applyColorBar(id,v,mode){ var bar=document.getElementById(id); if(!bar)return; var c=Math.max(0,Math.min(100,v)); bar.style.width=c+'%'; bar.className='progress-fill'; if(mode==='rep'){ if(c<33)bar.classList.add('rep-red'); else if(c<=66)bar.classList.add('rep-yellow'); else bar.classList.add('rep-green'); } else if(mode==='ins'){ if(c<33)bar.classList.add('ins-green'); else if(c<=66)bar.classList.add('ins-yellow'); else bar.classList.add('ins-red'); } }
+
+function setValFlash(id,v){ var e=document.getElementById(id); if(!e)return; var old=e.textContent; e.textContent=v; if(old!==v){ e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); } }
+function renderAllAttributes(){ renderStamina(); renderMoney(); renderAchievement(); renderReputation(); renderIntegrity(); renderInspection(); renderFinance(); renderExtraStats(); }
+function renderStamina(){ setValFlash('valStamina',Math.round(state.attributes.stamina)); setBar('barStamina',state.attributes.stamina,100); }
+function renderMoney(){ setValFlash('valMoney',state.attributes.personalMoney.toFixed(1)+' 万'); setBar('barMoney',state.attributes.personalMoney,500); }
+function renderAchievement(){ setValFlash('valAchievement',Math.round(state.attributes.politicalScore)); setBar('barAchievement',state.attributes.politicalScore,500); }
+function renderReputation(){ setValFlash('valReputation',Math.round(state.attributes.reputation)); applyColorBar('barReputation',state.attributes.reputation,'rep'); }
+function renderIntegrity(){ setValFlash('valIntegrity',Math.round(state.attributes.integrity)); setBar('barIntegrity',state.attributes.integrity,100); }
+function renderInspection(){ setValFlash('valInspection',Math.round(state.attributes.inspectionAttention)); applyColorBar('barInspection',state.attributes.inspectionAttention,'ins'); }
+function renderFinance(){ var c=document.getElementById('cardFinance'); if(!c)return; if(state.isMainOfficial){ c.style.display=''; setValFlash('valFinance',Math.round(state.attributes.governmentFunds)+' 万'); setBar('barFinance',state.attributes.governmentFunds,10000); } else c.style.display='none'; }
+function renderExtraStats(){ setValFlash('valAge',state.age); setValFlash('valYear',state.year+'年'); setValFlash('valRanking',state.cadreRank); setValFlash('valHealth',state.health); setValFlash('valHotPublic',Math.round(state.hotPublicOpinion)); setBar('barHotPublic',state.hotPublicOpinion,100); var secEl=document.getElementById('cardSecretary');if(secEl)secEl.style.display=state.secretary?'':'none'; if(state.secretary)setValFlash('valSecretary','忠'+state.secretary.loyalty+'/能'+state.secretary.ability); var driEl=document.getElementById('cardDriver');if(driEl)driEl.style.display=state.driver?'':'none'; if(state.driver)setValFlash('valDriver','忠'+state.driver.loyalty); }
+function renderHeader(){ setVal('dispRound',state.round); setVal('dispName',state.playerName); setVal('dispWorkAge',getWorkAge()+'年'); setVal('dispRank',getRankDisplay()); setVal('dispRegion',getRegion().name); }
+
+function calculateScore(){ var a=state.attributes; var r=getRegion(); return Math.round(Math.min(100,Math.max(0,a.politicalScore*0.25+a.reputation*0.15+a.integrity*0.15-a.inspectionAttention*0.10+a.stamina*0.05+r.economy*0.10+r.security*0.10+r.environment*0.10))); }
+
+var PROMO_REQS=[{score:0,pol:30,tenure:6},{score:20,pol:40,tenure:6},{score:30,pol:50,tenure:9},{score:40,pol:60,tenure:9},{score:50,pol:70,tenure:12},{score:60,pol:80,tenure:15},{score:70,pol:100,tenure:15},{score:80,pol:120,tenure:18},{score:90,pol:150,tenure:24},{score:95,pol:200,tenure:30}];
+
+var TAB_PANEL_MAP={gov:'gov',personnel:'personnel',finance:'finance',social:'social',personal:'personal',invest:'invest',inspection:'inspection'};
+function initTabs(){ document.querySelectorAll('.tab-btn').forEach(function(btn){ btn.addEventListener('click',function(){ document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')}); document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active')}); btn.classList.add('active'); var pid=TAB_PANEL_MAP[btn.dataset.tab]; if(pid){ var p=document.getElementById('panel'+pid.charAt(0).toUpperCase()+pid.slice(1)); if(p)p.classList.add('active'); } if(btn.dataset.tab==='personnel')renderPersonnelPanel(); if(btn.dataset.tab==='finance')renderFinancePanel(); if(btn.dataset.tab==='invest')renderInvestPanel(); if(btn.dataset.tab==='inspection')renderInspectionPanel(); }); }); }
+
+var SAVE_KEY='shiturensheng_save';
+function saveGame(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify({round:state.round,month:state.month,year:state.year,playerName:state.playerName,workAge:state.workAge,age:state.age,rankLevel:state.rankLevel,position:state.position,regionIdx:state.regionIdx,regionTenure:state.regionTenure,transferCooldown:state.transferCooldown,promoCooldown:state.promoCooldown,loanAmount:state.loanAmount,govLoanAmount:state.govLoanAmount,taxRate:state.taxRate,baseTax:state.baseTax,econGrowth:state.econGrowth,taxCooldown:state.taxCooldown,lastTaxAdj:state.lastTaxAdj,highTaxCount:state.highTaxCount,lowTaxCount:state.lowTaxCount,taxHist:state.taxHist.slice(0),repHist:state.repHist.slice(0),isMainOfficial:state.isMainOfficial,subordinates:state.subordinates.slice(0),corruptionCount:state.corruptionCount,rejectCorruptionCount:state.rejectCorruptionCount,achievements:state.achievements.slice(0),health:state.health,hotPublicOpinion:state.hotPublicOpinion,cadreRank:state.cadreRank,leadership:JSON.parse(JSON.stringify(state.leadership)),faction:JSON.parse(JSON.stringify(state.faction)),marriage:state.marriage,family:JSON.parse(JSON.stringify(state.family)),peerData:state.peerData.slice(0),favorDebt:state.favorDebt.slice(0),secretary:state.secretary?JSON.parse(JSON.stringify(state.secretary)):null,driver:state.driver?JSON.parse(JSON.stringify(state.driver)):null,receptionRecord:state.receptionRecord.slice(0),inspectionTeam:JSON.parse(JSON.stringify(state.inspectionTeam)),attributes:JSON.parse(JSON.stringify(state.attributes)),subsystems:JSON.parse(JSON.stringify(state.subsystems)),logs:state._logs.slice(-100),eventPools:JSON.parse(JSON.stringify(state.eventPools)),investProjects:JSON.parse(JSON.stringify(state.investProjects)),completedProjects:state.completedProjects.slice(0),failedProjects:JSON.parse(JSON.stringify(state.failedProjects)),investUsedNames:JSON.parse(JSON.stringify(state.investUsedNames)),totalInvested:state.totalInvested,totalSuccess:state.totalSuccess,annualInvest:JSON.parse(JSON.stringify(state.annualInvest)),lastInspectionTurn:state.lastInspectionTurn||0,inspectionHistory:JSON.parse(JSON.stringify(state.inspectionHistory||[])),concealedRecords:JSON.parse(JSON.stringify(state.concealedRecords||[])),saveTime:new Date().toLocaleString('zh-CN')})); addLog('进度已保存。','success'); }catch(e){ addLog('保存失败：'+e.message,'danger'); } }
+function loadGame(){ try{ var d=localStorage.getItem(SAVE_KEY); if(!d){ addLog('没有找到存档。','warning'); return; } var s=JSON.parse(d); state.round=s.round||1; state.month=s.month||1; state.year=s.year||2024; state.playerName=s.playerName||'未知'; state.workAge=s.workAge||0; state.age=s.age||(22+Math.floor(((s.round||1)-1)/4)); state.year=s.year||(2024+Math.floor(((s.round||1)-1)/12)); state.month=s.month||(((s.round||1)-1)%12+1); state.rankLevel=s.rankLevel||0; state.position=s.position||RANKS[state.rankLevel]||'科员'; state.regionIdx=s.regionIdx||0; state.regionTenure=s.regionTenure||1; state.transferCooldown=s.transferCooldown||0; state.promoCooldown=s.promoCooldown||0; state.loanAmount=s.loanAmount||0; state.govLoanAmount=s.govLoanAmount||0; state.isMainOfficial=s.isMainOfficial||false; state.subordinates=s.subordinates?s.subordinates.slice(0):[]; state.corruptionCount=s.corruptionCount||0; state.rejectCorruptionCount=s.rejectCorruptionCount||0; state.achievements=s.achievements?s.achievements.slice(0):[]; state.health=s.health||'良好'; state.hotPublicOpinion=s.hotPublicOpinion||0; state.cadreRank=s.cadreRank||'-'; state.leadership=s.leadership||{}; state.faction=s.faction||{}; state.marriage=s.marriage||null; state.family=s.family||{}; state.peerData=s.peerData?s.peerData.slice(0):[]; state.favorDebt=s.favorDebt?s.favorDebt.slice(0):[]; state.secretary=s.secretary?JSON.parse(JSON.stringify(s.secretary)):null; state.driver=s.driver?JSON.parse(JSON.stringify(s.driver)):null; state.receptionRecord=s.receptionRecord?s.receptionRecord.slice(0):[]; state.inspectionTeam=s.inspectionTeam||{}; Object.assign(state.attributes,s.attributes); if(s.subsystems)Object.assign(state.subsystems,s.subsystems); if(s.logs){ state._logs=s.logs.slice(); state._nextLogId=state._logs.length; var b=document.getElementById('logBody'); b.innerHTML=''; state._logs.forEach(function(e){renderLog(e);}); } if(s.eventPools){ for(var lv=0;lv<=3;lv++){ if(s.eventPools[lv])state.eventPools[lv]=s.eventPools[lv]; } } if(s.taxRate!==undefined){state.taxRate=s.taxRate;state.baseTax=s.baseTax||100;state.econGrowth=s.econGrowth||0;state.taxCooldown=s.taxCooldown||0;state.lastTaxAdj=s.lastTaxAdj||0;state.highTaxCount=s.highTaxCount||0;state.lowTaxCount=s.lowTaxCount||0;state.taxHist=s.taxHist?JSON.parse(JSON.stringify(s.taxHist)):[];state.repHist=s.repHist?JSON.parse(JSON.stringify(s.repHist)):[];} if(s.investProjects)state.investProjects=s.investProjects.map(function(p){return JSON.parse(JSON.stringify(p));}); if(s.completedProjects)state.completedProjects=s.completedProjects.slice(0); if(s.failedProjects)state.failedProjects=s.failedProjects.map(function(p){return JSON.parse(JSON.stringify(p));}); if(s.investUsedNames)state.investUsedNames=JSON.parse(JSON.stringify(s.investUsedNames)); if(s.totalInvested!==undefined)state.totalInvested=s.totalInvested; if(s.totalSuccess!==undefined)state.totalSuccess=s.totalSuccess; if(s.annualInvest)state.annualInvest=JSON.parse(JSON.stringify(s.annualInvest)); state.lastInspectionTurn=s.lastInspectionTurn||0; if(s.inspectionHistory)state.inspectionHistory=s.inspectionHistory.map(function(r){return JSON.parse(JSON.stringify(r));}); if(s.concealedRecords)state.concealedRecords=s.concealedRecords.map(function(r){return JSON.parse(JSON.stringify(r));}); renderHeader(); renderPersonnelPanel(); renderAllAttributes(); renderExtraStats(); updateLogCount(); addLog('存档读取成功！（'+(s.saveTime||'未知时间')+'）','event'); }catch(e){ addLog('读取存档失败：存档数据损坏','danger'); } }
+
+function setDefaultPosition(){ var p=POSITIONS[state.rankLevel]; if(p)state.position=p.title||(p.options?p.options[0]:null)||state.position; }
+function showPositionPicker(posObj,cb){ if(!posObj){cb(null);return;} if(!posObj.options){cb(posObj.title||null);return;} var o=document.getElementById('posOverlay'); var l=document.getElementById('posOptions'); l.innerHTML=''; posObj.options.forEach(function(opt){ var b=document.createElement('button'); b.className='transfer-btn'; b.textContent=opt; b.onclick=function(){hideOverlay();cb(opt);}; l.appendChild(b); }); o.style.display='flex'; }
+function hideOverlay(){ document.getElementById('posOverlay').style.display='none'; }
+
+function promote(){ if(state.promoCooldown>0){addLog('晋升冷却中，剩余'+state.promoCooldown+'回合。','warning');return;} if(state.promoVoteCooldown>0){addLog('人大常委会否决后需等待'+state.promoVoteCooldown+'回合才能再次提请。','warning');return;} var nxt=state.rankLevel+1; if(nxt>=RANKS.length){addLog('已达到最高职级！','warning');return;} var rq=PROMO_REQS[state.rankLevel]; var score=calculateScore(); var pol=state.attributes.politicalScore; var tenure=state.regionTenure; var reasons=[]; if(score<rq.score)reasons.push('综合评分需≥'+rq.score+'（当前'+score+'）'); if(pol<rq.pol)reasons.push('政绩需≥'+rq.pol+'（当前'+Math.round(pol)+'）'); if(tenure<rq.tenure)reasons.push('任职需≥'+rq.tenure+'回合（当前'+tenure+'）'); if(reasons.length>0){addLog('晋升条件不足：'+reasons.join('；'),'danger');return;} var old=getRankName(); var nr=RANKS[nxt]; var np=POSITIONS[nxt]; var pr=Math.min(90,Math.max(20,60+state.attributes.integrity*0.15+state.attributes.reputation*0.10-state.attributes.inspectionAttention*0.20)); showPromoVote(old,nr,np,pr); }
+
+function showPromoVote(oldRank,newRank,posObj,passRate){ var overlay=document.getElementById('voteOverlay'); var content=document.getElementById('voteContent'); if(!overlay||!content)return; var h='<div style="text-align:center">'; h+='<div style="font-size:1.1rem;font-weight:700;color:var(--red);margin-bottom:12px">🏛️ 人大常委会任免表决</div>'; h+='<div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:16px;line-height:1.8">'; h+='提请任命 <strong style="color:var(--text)">'+state.playerName+'</strong><br>'; h+='由 <strong>'+oldRank+'</strong> 拟任 <strong>'+newRank+'</strong><br>'; if(posObj&&posObj.options){h+='<div style="font-size:0.8rem;color:var(--text-dim);margin-top:6px">（待后续选择具体职务）</div>';}else if(posObj){h+='拟任职务：<strong style="color:var(--red)">'+posObj.title+'</strong>';} h+='</div>'; h+='<div style="background:var(--surface);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px">'; h+='<div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:6px">通过率预测</div>'; h+='<div class="progress-track" style="height:20px;background:#DDD6CC;border-radius:10px;overflow:hidden">'; h+='<div class="progress-fill" style="height:100%;width:'+passRate+'%;background:'+(passRate>=60?'var(--safe)':'var(--warning)')+';border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:#fff">'+passRate+'%</div>'; h+='</div>'; h+='<div style="font-size:0.72rem;color:var(--text-dim);margin-top:4px">基础60% + 清廉度+'+(state.attributes.integrity*0.15).toFixed(0)+'% + 声望+'+(state.attributes.reputation*0.10).toFixed(0)+'% − 纪律审查−'+(state.attributes.inspectionAttention*0.20).toFixed(0)+'%</div>'; h+='</div>'; h+='<button class="exam-big-btn" onclick="resolvePromoVote()">📮 提交人大常委会审议</button>'; h+='<button class="exam-big-btn outline" onclick="hideVoteOverlay()">撤回申请</button>'; h+='</div>'; content.innerHTML=h; overlay.style.display='flex'; }
+
+function hideVoteOverlay(){ document.getElementById('voteOverlay').style.display='none'; }
+
+function resolvePromoVote(){ var r=Math.random()*100; var nxt=state.rankLevel+1; var rq=PROMO_REQS[state.rankLevel]; var old=getRankName(); var np=POSITIONS[nxt]; var pr=Math.min(90,Math.max(20,60+state.attributes.integrity*0.15+state.attributes.reputation*0.10-state.attributes.inspectionAttention*0.20)); document.getElementById('voteOverlay').style.display='none'; if(r<pr){ addLog('✅ 人大常委会表决通过！任命为'+RANKS[nxt]+'。','success'); var doPromote=function(choice){ state.attributes.politicalScore=Math.max(0,state.attributes.politicalScore-(rq.pol-10)); state.rankLevel=nxt; state.position=choice||(np?np.title:null)||state.position; state.promoCooldown=5; state.superviseField=null; state.fieldChangeCooldown=0; renderHeader(); renderAllAttributes(); renderPersonnelPanel(); addLog('【晋升】从'+old+'晋升至'+getRankName()+'，职务：'+getPosition()+'，消耗政绩'+(rq.pol-10)+'点，冷却5回合。','event'); setTimeout(function(){showRegionPickerForRank(nxt);},300); }; if(np&&np.options){showPositionPicker(np,function(c){if(c!==null&&c!==undefined)doPromote(c);});}else if(np&&np.title){doPromote(np.title);}else{doPromote(null);} }else{ state.promoVoteCooldown=3; addLog('❌ 人大常委会表决未通过，建议暂缓任命。需等待3回合后再次提请。','danger'); renderPersonnelPanel(); } }
+
+var FIELDS=['农业','工业','政法','文教卫生','城建交通'];
+var FIELD_KEYWORDS=[/农业|农村|农田|农贸|扶贫|乡村振兴/i,/工业|企业|招商|产业|产能|科技|投资|贸易/i,/政法|黑恶|贪腐|信访|治安|消防|赌博|走私|禁毒/i,/教育|医疗|学校|卫生|医保|养老|文化|体育/i,/城建|交通|房地产|高铁|道路|城市|基建|拆迁/i];
+
+function showFieldPicker(cb){ var o=document.getElementById('fundOverlay'); var h='<div style="text-align:center">'; h+='<div class="fund-icon" style="font-size:2.5rem">🎯</div>'; h+='<div class="fund-title">选择分管领域</div>'; h+='<div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:16px;line-height:1.6">请选择你要分管的领域：<br><span style="color:var(--red);font-size:0.78rem">该领域事件概率+30%，政绩+20%，其他领域政绩-10%</span></div>'; for(var i=0;i<FIELDS.length;i++){h+='<button class="transfer-btn" onclick="selectField('+i+')">'+FIELDS[i]+'</button>';} h+='<button class="exam-big-btn outline" onclick="document.getElementById(\'fundOverlay\').style.display=\'none\'" style="margin-top:8px">取消</button></div>'; var el=document.getElementById('fundContent');if(!el){var card=document.querySelector('#fundOverlay .overlay-card');el=document.createElement('div');el.id='fundContent';card.appendChild(el);} el.innerHTML=h; o.style.display='flex'; window._fieldCb=cb; }
+function selectField(i){ document.getElementById('fundOverlay').style.display='none'; var cb=window._fieldCb; if(cb)cb(FIELDS[i]); }
+function changeField(){ if(!state.superviseField){addLog('当前没有分管领域。','warning');return;} if(state.fieldChangeCooldown>0){addLog('更换领域冷却中，剩余'+state.fieldChangeCooldown+'回合。','warning');return;} if(state.attributes.politicalScore<30){addLog('政绩不足30点，无法更换分管领域。','danger');return;} showFieldPicker(function(f){if(f===state.superviseField){addLog('未变更分管领域。','info');return;} var oldF=state.superviseField; state.superviseField=f; state.attributes.politicalScore-=30; state.fieldChangeCooldown=60; addLog('分管领域由「'+oldF+'」更换为「'+f+'」，消耗政绩30点。','event'); renderHeader();renderAllAttributes();renderPersonnelPanel();}); }
+
+function renderPersonnelPanel(){ var el=document.getElementById('personnelContent'); if(!el)return; var r=getRegion(); var rn=getRankName(); var ct=state.transferCooldown>0?'（冷却中，剩余 '+state.transferCooldown+' 回合）':''; var a=state.attributes; var sc=calculateScore(); var h=''; h+='<div class="panel-card" style="margin-bottom:16px"><h4 style="font-size:1rem;color:var(--red);margin-bottom:12px">👤 我的信息</h4><div class="info-grid">'; h+='<div><span class="info-label">职级</span><span class="info-value">'+rn+'（'+state.rankLevel+'/'+(RANKS.length-1)+'）</span></div>'; h+='<div><span class="info-label">职务</span><span class="info-value">'+getPosition()+'</span></div>'; if(state.superviseField)h+='<div><span class="info-label">分管领域</span><span class="info-value" style="color:var(--red)">'+state.superviseField+'</span></div>'; h+='<div><span class="info-label">综合评分</span><span class="info-value" style="color:'+(sc>=60?'var(--safe)':sc>=40?'var(--warning)':'var(--danger)')+'">'+sc+'/100</span></div>'; h+='<div><span class="info-label">当前地区</span><span class="info-value">'+r.name+'（'+getRegionLevelName(r.level)+'）</span></div>'; h+='<div><span class="info-label">任职回合</span><span class="info-value">'+state.regionTenure+' 回合</span></div>'; h+='</div></div>'; h+='<div class="panel-card" style="margin-bottom:16px"><h4 style="font-size:1rem;color:var(--red);margin-bottom:12px">⬆️ 晋升</h4>'; if(state.rankLevel>=RANKS.length-1){ h+='<div style="font-size:0.85rem;color:var(--gold)">🏆 已达到最高职级！</div>'; }else{ var nr=RANKS[state.rankLevel+1]; var rq=PROMO_REQS[state.rankLevel]; var cd=[]; var canPromote=true; if(sc<rq.score){cd.push('<span style="color:var(--danger)">评分 '+sc+'/'+rq.score+'</span>'); canPromote=false;}else{cd.push('<span style="color:var(--safe)">评分 '+sc+'/'+rq.score+'</span>');} if(state.attributes.politicalScore<rq.pol){cd.push('<span style="color:var(--danger)">政绩 '+Math.round(state.attributes.politicalScore)+'/'+rq.pol+'</span>'); canPromote=false;}else{cd.push('<span style="color:var(--safe)">政绩 '+Math.round(state.attributes.politicalScore)+'/'+rq.pol+'</span>');} if(state.regionTenure<rq.tenure){cd.push('<span style="color:var(--danger)">任职 '+state.regionTenure+'/'+rq.tenure+'</span>'); canPromote=false;}else{cd.push('<span style="color:var(--safe)">任职 '+state.regionTenure+'/'+rq.tenure+'</span>');} h+='<div style="font-size:0.82rem;color:var(--text-dim);margin-bottom:8px">下一级：'+nr+' — '+cd.join(' · ')+'</div>'; h+='<button class="transfer-btn" onclick="promote()"'+(canPromote?'':' disabled style="opacity:0.5;cursor:not-allowed"')+'>⬆️ 申请晋升至'+nr+'</button>'; } h+='</div>'; h+='<div class="panel-card" style="margin-bottom:16px"><h4 style="font-size:1rem;color:var(--red);margin-bottom:12px">📊 评分详情</h4><div style="font-size:0.8rem;line-height:1.8;color:var(--text-dim);padding:4px 0">'; h+='<div>政绩 × 25%：'+Math.round(a.politicalScore)+' → +'+(a.politicalScore*0.25).toFixed(1)+'</div>'; h+='<div>声望 × 15%：'+Math.round(a.reputation)+' → +'+(a.reputation*0.15).toFixed(1)+'</div>'; h+='<div>清廉度 × 15%：'+Math.round(a.integrity)+' → +'+(a.integrity*0.15).toFixed(1)+'</div>'; h+='<div>纪律审查 × 10%：'+Math.round(a.inspectionAttention)+' → -'+(a.inspectionAttention*0.10).toFixed(1)+'</div>'; h+='<div>体力 × 5%：'+Math.round(a.stamina)+' → +'+(a.stamina*0.05).toFixed(1)+'</div>'; h+='<div>经济水平 × 10%：'+Math.round(r.economy)+' → +'+(r.economy*0.10).toFixed(1)+'</div>'; h+='<div>治安状况 × 10%：'+Math.round(r.security)+' → +'+(r.security*0.10).toFixed(1)+'</div>'; h+='<div>环境质量 × 10%：'+Math.round(r.environment)+' → +'+(r.environment*0.10).toFixed(1)+'</div>'; h+='<div style="margin-top:6px;font-weight:600;color:var(--text)">总分：'+sc+'/100</div></div></div>'; h+='<div class="panel-card" style="margin-bottom:16px"><h4 style="font-size:1rem;color:var(--red);margin-bottom:12px">🏙️ 当前地区</h4><div class="info-grid">'; h+='<div><span class="info-label">财政资金</span><span class="info-value">'+r.finance.toLocaleString()+' 万</span></div>'; h+='<div><span class="info-label">经济水平</span><span class="info-value">'+r.economy+'/100</span></div>'; h+='<div><span class="info-label">治安状况</span><span class="info-value">'+r.security+'/100</span></div>'; h+='<div><span class="info-label">环境质量</span><span class="info-value">'+r.environment+'/100</span></div>'; h+='</div></div>'; h+='<div class="panel-card"><h4 style="font-size:1rem;color:var(--red);margin-bottom:12px">🔄 平调 '+ct+'</h4>'; if(state.rankLevel<4||state.regionTenure<4||state.attributes.politicalScore<20){ var reasons=[]; if(state.rankLevel<4)reasons.push('需要职级≥正处级（当前'+rn+'）'); if(state.regionTenure<4)reasons.push('需要任职≥4回合（当前'+state.regionTenure+'）'); if(state.attributes.politicalScore<20)reasons.push('需要≥20政绩（当前'+Math.round(state.attributes.politicalScore)+'）'); h+='<div style="font-size:0.82rem;color:var(--text-dim);margin-bottom:8px">条件未满足：</div>'; reasons.forEach(function(r){h+='<div style="font-size:0.78rem;color:var(--danger);padding:2px 0">⚠ '+r+'</div>';}); }else if(state.transferCooldown>0){ h+='<div style="font-size:0.82rem;color:var(--warning)">⏳ 冷却中，剩余'+state.transferCooldown+'回合</div>'; }else{ var same=[]; for(var i=0;i<REGIONS.length;i++){if(REGIONS[i].level===r.level&&i!==state.regionIdx)same.push({idx:i,reg:REGIONS[i]});} if(same.length){ h+='<div style="font-size:0.82rem;color:var(--text-dim);margin-bottom:8px">携带亲信（最多2人，每人+5政绩）</div><div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">'; if(state.subordinates.length){ for(var si=0;si<state.subordinates.length;si++){ var s=state.subordinates[si]; h+='<label class="sub-check"><input type="checkbox" class="sub-cb" data-idx="'+si+'"'+(si<2?' checked':'')+'> '+s.name+'（忠诚'+s.loyalty+'）</label>'; } }else{ h+='<span style="font-size:0.78rem;color:var(--text-dim)">暂无亲信。</span>'; } h+='</div>'; for(var j=0;j<same.length;j++){ h+='<button class="transfer-btn" onclick="doTransfer('+same[j].idx+')">'+same[j].reg.name+'（'+getRegionLevelName(same[j].reg.level)+'）</button>'; } }else{ h+='<div style="font-size:0.82rem;color:var(--text-dim)">无同级可调地区。</div>'; } } h+='</div>'; if(state.superviseField){h+='<div class="panel-card" style="margin-top:16px"><h4 style="font-size:1rem;color:var(--red);margin-bottom:12px">🎯 分管领域</h4><div class="info-grid"><div><span class="info-label">当前分管</span><span class="info-value" style="color:var(--red)">'+state.superviseField+'</span></div></div>'; var fcd=state.fieldChangeCooldown;if(fcd>0){h+='<div style="font-size:0.82rem;color:var(--warning);padding:4px 0">⏳ 更换冷却中，剩余'+fcd+'回合（约'+Math.ceil(fcd/12)+'年）</div>';}else{h+='<button class="transfer-btn" onclick="changeField()">🔄 更换分管领域（消耗30政绩）</button>';} h+='</div>';} el.innerHTML=h; }
+
+function doTransfer(ti){ if(state.rankLevel<4||state.regionTenure<4||state.transferCooldown>0||state.attributes.politicalScore<20){addLog('条件不满足。','danger');return;} var cost=20; var carry=[]; var cbs=document.querySelectorAll('.sub-cb:checked'); var n=Math.min(cbs.length,2); for(var i=0;i<n;i++){ var idx=parseInt(cbs[i].dataset.idx); if(idx>=0&&idx<state.subordinates.length){cost+=5; state.subordinates[idx].loyalty+=10; carry.push(state.subordinates[idx]);} } if(state.attributes.politicalScore<cost){addLog('政绩不足。','danger');return;} var old=getRegion().name; var t=REGIONS[ti]; state.attributes.politicalScore-=cost; state.regionIdx=ti; state.regionTenure=0; state.transferCooldown=5; state.subordinates=carry; state.subsystems.government={}; state.subsystems.finance={}; renderHeader(); renderAllAttributes(); renderPersonnelPanel(); addLog('【平调】从'+old+'调任至'+t.name+'，消耗政绩'+cost+'点。','event'); carry.forEach(function(s){addLog('亲信「'+s.name+'」随调，忠诚+10。','success');}); addLog('平调冷却5回合。','warning'); }
+
+function showStartScreen(){ document.getElementById('startScreen').style.display=''; document.getElementById('examScreen').style.display='none'; document.getElementById('gameContainer').style.display='none'; var inp=document.getElementById('nameInput'); if(inp){inp.value='';inp.focus();} }
+function startNewGame(){ var n=document.getElementById('nameInput').value.trim(); if(!n){document.getElementById('nameInput').placeholder='请输入姓名！';document.getElementById('nameInput').focus();return;} state.playerName=n; state.workAge=0; document.getElementById('startScreen').style.display='none'; document.getElementById('examScreen').style.display=''; startExam(); }
+function startLoadGame(){ var d=localStorage.getItem(SAVE_KEY); if(!d){alert('没有找到存档。');return;} try{ var s=JSON.parse(d); state.round=s.round; state.month=s.month||(((s.round||1)-1)%12+1); state.year=s.year||(2024+Math.floor(((s.round||1)-1)/12)); state.playerName=s.playerName||'未知'; state.workAge=s.workAge||0; state.age=s.age||(22+Math.floor(((s.round||1)-1)/4)); state.rankLevel=s.rankLevel||0; state.position=s.position||RANKS[state.rankLevel]||'科员'; state.regionIdx=s.regionIdx||0; state.regionTenure=s.regionTenure||1; state.transferCooldown=s.transferCooldown||0; state.isMainOfficial=s.isMainOfficial||false; state.subordinates=s.subordinates?s.subordinates.slice(0):[]; Object.assign(state.attributes,s.attributes); if(s.subsystems)Object.assign(state.subsystems,s.subsystems); if(s.logs){state._logs=s.logs.slice();state._nextLogId=state._logs.length;} if(s.eventPools){for(var lv=0;lv<=3;lv++){if(s.eventPools[lv])state.eventPools[lv]=s.eventPools[lv];}} document.getElementById('startScreen').style.display='none'; enterMainGame(false); }catch(e){alert('存档读取失败：数据损坏');} }
+
+var EXAM_COUNT=10,EXAM_PASS=6,examState=null;
+function shuffleArray(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;} return a;}
+function startExam(prevRetries){ examState={pool:shuffleArray(EXAM_QUESTIONS).slice(0,EXAM_COUNT),answers:new Array(EXAM_COUNT).fill(-1),current:0,retries:prevRetries||0,submitted:false}; renderExam(); }
+function renderExam(){ var el=document.getElementById('examContent'); if(!el||!examState)return; var s=examState,q=s.pool[s.current],labels=['A','B','C','D']; var h='<div class="exam-header"><h2>📝 行测考试</h2><span class="exam-progress">第'+(s.current+1)+'/'+EXAM_COUNT+'题</span></div>'; h+='<div class="exam-question"><span class="q-num">'+(s.current+1)+'</span>'+q.q+'</div>'; for(var i=0;i<q.o.length;i++){ var cls='exam-option'; var sel=s.answers[s.current]; if(sel===i)cls+=' selected'; if(s.submitted){if(i===q.a)cls+=' correct';else if(sel===i&&sel!==q.a)cls+=' wrong';} h+='<button class="'+cls+'" onclick="selectAnswer('+i+')"'+(s.submitted?' disabled':'')+'>'+labels[i]+'. '+q.o[i]+'</button>'; } h+='<div class="exam-nav">'; if(s.current>0)h+='<button class="exam-btn exam-btn-outline" onclick="goExam(-1)">← 上一题</button>'; else h+='<span></span>'; if(!s.submitted){ if(s.answers[s.current]>=0){ if(s.current<EXAM_COUNT-1)h+='<button class="exam-btn" onclick="goExam(1)">下一题 →</button>'; else h+='<button class="exam-btn" onclick="submitExam()">交卷</button>'; }else h+='<button class="exam-btn" disabled>请先选择答案</button>'; }else h+='<button class="exam-btn exam-btn-outline" onclick="showExamResult()">查看成绩</button>'; h+='</div>'; el.innerHTML=h; }
+function selectAnswer(i){if(!examState||examState.submitted)return;examState.answers[examState.current]=i;renderExam();}
+function goExam(d){if(!examState)return;var n=examState.current+d;if(n>=0&&n<EXAM_COUNT){examState.current=n;renderExam();}}
+function submitExam(){ if(!examState||examState.submitted)return; var c=0; for(var i=0;i<EXAM_COUNT;i++){if(examState.answers[i]<0){examState.current=i;renderExam();return;} if(examState.answers[i]===examState.pool[i].a)c++;} examState.submitted=true; examState.score=c; examState.passed=c>=EXAM_PASS; showExamResult(); }
+function showExamResult(){ var el=document.getElementById('examContent'); if(!el||!examState)return; var p=examState.passed; var h='<div class="exam-header"><h2>📝 考试结果</h2></div><div class="exam-result">'; h+='<div class="score '+(p?'score-pass':'score-fail')+'">'+examState.score+'/'+EXAM_COUNT+'</div>'; h+='<div class="sub-text">'+(p?'✅ 恭喜通过！':'❌ 未达到'+EXAM_PASS+'分。')+'</div>'; h+='<div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:var(--space-lg)">重试次数：'+examState.retries+'</div>'; if(p)h+='<button class="exam-big-btn" onclick="enterMainGame()">🏛️ 进入官场</button>'; else{h+='<button class="exam-big-btn" onclick="startExam(examState.retries+1)">🔄 重新考试</button>';} h+='</div>'; el.innerHTML=h; }
+
+function enterMainGame(){ document.getElementById('examScreen').style.display='none'; document.getElementById('gameContainer').style.display='flex'; renderHeader(); renderAllAttributes(); renderExtraStats(); renderPersonnelPanel(); renderFinancePanel(); renderInspectionPanel(); addLog('欢迎来到官场模拟器！','event'); addLog('干部「'+state.playerName+'」以'+getRankName()+'级 '+getPosition()+(state.superviseField?'（分管'+state.superviseField+'）':'')+'身份抵达'+getRegion().name+'，正式上任。','event'); addLog('提示：切换至「人事」面板可查看职级、晋升与平调。','info'); initTabs(); document.getElementById('btnSave').addEventListener('click',saveGame); document.getElementById('btnLoad').addEventListener('click',function(){loadGame();renderPersonnelPanel();}); }
+
+var LV_NAMES=['县级','市级','省级','国家级'];
+function getLevelEvents(lv){ var p=state.eventPools[lv]; var a=[]; for(var i=0;i<EVENTS.length;i++){if(EVENTS[i].level===lv&&p.triggeredIds.indexOf(EVENTS[i].id)<0)a.push(EVENTS[i]);} if(a.length<1){p.resetCount++;p.triggeredIds=[];a=[];for(var i=0;i<EVENTS.length;i++){if(EVENTS[i].level===lv)a.push(EVENTS[i]);} addLog(LV_NAMES[lv]+'事件池已重置（第'+p.resetCount+'次）。','info');} if(state.superviseField){var fi=FIELDS.indexOf(state.superviseField);if(fi>=0){var boosted=[];for(var i=0;i<a.length;i++){if(FIELD_KEYWORDS[fi].test(a[i].title+a[i].desc)){boosted.push(a[i]);}} for(var i=0;i<boosted.length;i++){var idx=a.indexOf(boosted[i]);if(idx>=0){a.splice(idx,1);}} for(var i=0;i<boosted.length;i++){var ins=Math.floor(Math.random()*3);a.splice(ins,0,boosted[i]);} }} return a; }
+function showEvent(evt){ var o=document.getElementById('eventOverlay'),c=document.getElementById('eventContent'); if(!o||!c)return; var h='<div class="event-badge lv'+evt.level+'">'+LV_NAMES[evt.level]+'事件</div><div class="event-title">'+evt.title+'</div><div class="event-desc">'+evt.desc+'</div>'; for(var i=0;i<evt.options.length;i++){ var opt=evt.options[i],eff=opt.effects,parts=[]; if(eff.stamina)parts.push((eff.stamina>0?'+':'')+eff.stamina+'体力'); if(eff.money)parts.push((eff.money>0?'+':'')+eff.money+'金钱'); if(eff.politicalScore)parts.push((eff.politicalScore>0?'+':'')+eff.politicalScore+'政绩'); if(eff.reputation)parts.push((eff.reputation>0?'+':'')+eff.reputation+'声望'); if(eff.inspectionAttention)parts.push((eff.inspectionAttention>0?'+':'')+eff.inspectionAttention+'关注'); var et=parts.length?'（'+parts.join('/')+'）':''; var canAfford=!(eff.money<0&& (state.isMainOfficial?state.attributes.governmentFunds:state.attributes.personalMoney) +eff.money<0); h+='<button class="event-opt-btn" onclick="'+(canAfford?'resolveEvent('+evt.id+','+i+')':'')+'"'+(canAfford?'':' disabled style="opacity:0.4;cursor:not-allowed"')+'>'+opt.text+'<br><span class="event-effects">'+et+(canAfford?'':'<br><span style="color:var(--danger)">💰 余额不足</span>')+'</span></button>'; }h+='<div style="text-align:center;margin-top:12px"><button class="save-btn" onclick="exitEvent()" style="color:var(--text-dim);border-color:var(--border);background:transparent">退出事件</button></div>'; c.innerHTML=h; o.style.display='flex'; }
+
+function exitEvent(){ document.getElementById('eventOverlay').style.display='none'; state.pendingEvents=[]; state.eventInProgress=false; addLog('你退出了当前事件处理。','info'); }
+function resolveEvent(eid,oi){ var evt; for(var i=0;i<EVENTS.length;i++){if(EVENTS[i].id===eid){evt=EVENTS[i];break;}} if(!evt)return; var opt=evt.options[oi],eff=opt.effects; state.attributes.stamina=Math.max(0,Math.min(100,state.attributes.stamina+(eff.stamina||0))); var m=eff.money||0; if(m!==0){ if(state.isMainOfficial){state.attributes.governmentFunds=Math.max(0,state.attributes.governmentFunds+m);if(m<0&&Math.random()<0.7){var rebate=Math.round(Math.abs(m)*(0.6+Math.random()*0.2)*100)/100;state.attributes.personalMoney+=rebate;addLog('报销申请通过，个人获得报销款'+rebate.toFixed(1)+'万。','success');}}else{state.attributes.personalMoney=Math.max(0,state.attributes.personalMoney+m);if(m<0&&Math.random()<0.7){var rebate=Math.round(Math.abs(m)*(0.6+Math.random()*0.2)*100)/100;state.attributes.personalMoney+=rebate;addLog('报销申请通过，个人获得报销款'+rebate.toFixed(1)+'万。','success');}} } var ps=eff.politicalScore||0; if(ps!==0&&state.superviseField){var fi=FIELDS.indexOf(state.superviseField);if(fi>=0){if(FIELD_KEYWORDS[fi].test(evt.title+evt.desc)){ps=Math.round(ps*1.2);}else{ps=Math.round(ps*0.9);} }} state.attributes.politicalScore=Math.max(0,state.attributes.politicalScore+ps); state.attributes.reputation=Math.max(0,Math.min(100,state.attributes.reputation+(eff.reputation||0))); state.attributes.inspectionAttention=Math.max(0,Math.min(100,state.attributes.inspectionAttention+(eff.inspectionAttention||0))); var p=state.eventPools[evt.level]; if(p.triggeredIds.indexOf(eid)<0){p.triggeredIds.push(eid);p.totalTriggered++;} renderAllAttributes(); addLog('【事件】'+evt.title+'——选择了「'+opt.text+'」。','event'); document.getElementById('eventOverlay').style.display='none'; state.pendingEvents.shift(); if(state.pendingEvents.length>0)showEvent(state.pendingEvents[0]); else state.eventInProgress=false; }
+function nextRound(){ if(state.eventInProgress){addLog('请先处理当前事件。','warning');return;} if(Math.round(state.attributes.stamina)<=0){addLog('体力耗尽，无法工作。请先休息。','danger');return;} state.round++; state.month=(state.month%12)+1; if(state.month===1)state.year++; state.age=22+Math.floor((state.round-1)/4); state.regionTenure++; if(state.transferCooldown>0)state.transferCooldown--; if(state.promoCooldown>0)state.promoCooldown--; if(state.promoVoteCooldown>0)state.promoVoteCooldown--; if(state.taxCooldown>0)state.taxCooldown--; if(state.fieldChangeCooldown>0)state.fieldChangeCooldown--; if(state.loanAmount>0)state.loanAmount=Math.round((state.loanAmount*1.02)*100)/100; if(state.govLoanAmount>0)state.govLoanAmount=Math.round((state.govLoanAmount*1.02)*100)/100; if(state.attributes.governmentFunds<0)state.attributes.governmentFunds=0; applyTaxEffects(); state.attributes.personalMoney+=SALARY[state.rankLevel]; var cost=0.5; if(state.attributes.personalMoney>=cost){state.attributes.personalMoney-=cost;}else{state.attributes.reputation=Math.max(0,state.attributes.reputation-3);addLog('囊中羞涩，生活开支难以维持，声望下降。','warning');state.attributes.personalMoney=0;} renderAllAttributes(); generateProjects(); updateConstruction(); if(document.getElementById('panelInspection').classList.contains('active'))renderInspectionPanel(); var lv=getRegion().level,avail=getLevelEvents(lv),count=1+(Math.random()<0.5?1:0); count=Math.min(count,avail.length); if(count>0){ var sh=[]; for(var i=0;i<avail.length;i++)sh.push(i); for(var i=sh.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=sh[i];sh[i]=sh[j];sh[j]=t;} state.pendingEvents=[]; for(var i=0;i<count;i++)state.pendingEvents.push(avail[sh[i]]); state.eventInProgress=true; renderHeader(); showEvent(state.pendingEvents[0]); } renderHeader(); addLog('——— 第'+state.round+'回合 ——— 工龄'+getWorkAge()+'年。','event'); saveGame(); }
+
+function rest(){ if(state.eventInProgress){addLog('请先处理当前事件。','warning');return;} state.round++; state.month=(state.month%12)+1; if(state.month===1)state.year++; state.age=22+Math.floor((state.round-1)/4); state.regionTenure++; if(state.transferCooldown>0)state.transferCooldown--; if(state.promoCooldown>0)state.promoCooldown--; if(state.promoVoteCooldown>0)state.promoVoteCooldown--; if(state.taxCooldown>0)state.taxCooldown--; if(state.loanAmount>0)state.loanAmount=Math.round((state.loanAmount*1.02)*100)/100; if(state.govLoanAmount>0)state.govLoanAmount=Math.round((state.govLoanAmount*1.02)*100)/100; if(state.attributes.governmentFunds<0)state.attributes.governmentFunds=0; applyTaxEffects(); state.attributes.personalMoney+=SALARY[state.rankLevel]; var cost=0.3; if(state.attributes.personalMoney>=cost){state.attributes.personalMoney-=cost;}else{state.attributes.reputation=Math.max(0,state.attributes.reputation-2);state.attributes.personalMoney=0;} state.attributes.stamina=Math.min(100,state.attributes.stamina+30); renderHeader(); renderAllAttributes(); generateProjects(); updateConstruction(); if(document.getElementById('panelInspection').classList.contains('active'))renderInspectionPanel(); addLog('—— 休息一回合，体力恢复30点，领工资'+(SALARY[state.rankLevel]*10).toFixed(0)+'千元。','info'); saveGame(); }
+
+function getLoanLimit(){ return (state.rankLevel+1)*5; }
+function showLoanDialog(){ if(state.eventInProgress){addLog('请先处理当前事件。','warning');return;} var limit=getLoanLimit(); var avail=Math.max(0,limit-state.loanAmount); var h='<div style="text-align:center">'; h+='<div style="font-size:1.1rem;font-weight:700;color:var(--warning);margin-bottom:12px">🏦 个人贷款</div>'; h+='<div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:8px">可贷额度：<strong style="color:var(--text)">'+avail.toFixed(0)+' 万</strong></div>'; h+='<div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:16px">利率：每回合2% | 总额度：'+limit+'万（已贷'+state.loanAmount.toFixed(1)+'万）</div>'; h+='<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px">'; var amounts=[5,10,20,50]; for(var ai=0;ai<amounts.length;ai++){ var a=amounts[ai]; if(a<=avail){h+='<button class="transfer-btn" style="width:auto;display:inline-block" onclick="borrowLoan('+a+')">贷'+a+'万</button>';}} h+='</div>'; if(state.loanAmount>0){h+='<div style="font-size:0.82rem;color:var(--text-dim);margin-bottom:8px">还款</div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px">'; var repayAmts=[5,10,state.loanAmount]; for(var ri=0;ri<repayAmts.length;ri++){ var ra=repayAmts[ri]; if(ra>0&&ra<=state.attributes.personalMoney&&ra<=state.loanAmount){h+='<button class="transfer-btn" style="width:auto;display:inline-block" onclick="repayLoan('+ra+')">还'+ra+'万</button>';}} h+='</div>';} if(state.isMainOfficial){ var gLimit=getGovLoanLimit(); var gAvail=Math.max(0,gLimit-state.govLoanAmount); h+='<hr style="border-color:var(--border);margin:12px 0">'; h+='<div style="font-size:1rem;font-weight:700;color:var(--red);margin-bottom:8px">🏛️ 政府贷款</div>'; h+='<div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:8px">政府可贷：<strong style="color:var(--text)">'+gAvail.toFixed(0)+' 万</strong></div>'; h+='<div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:12px">总额度：'+gLimit+'万（已贷'+state.govLoanAmount.toFixed(1)+'万）</div>'; h+='<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px">'; var gAmts=[50,100,200,500]; for(var gi=0;gi<gAmts.length;gi++){ var ga=gAmts[gi]; if(ga<=gAvail){h+='<button class="transfer-btn" style="width:auto;display:inline-block" onclick="borrowGovLoan('+ga+')">贷'+ga+'万</button>';}} h+='</div>'; if(state.govLoanAmount>0){h+='<div style="font-size:0.82rem;color:var(--text-dim);margin-bottom:4px">还款</div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:8px">'; var gRepay=[50,100,state.govLoanAmount]; for(var gri=0;gri<gRepay.length;gri++){ var gra=gRepay[gri]; if(gra>0&&gra<=state.attributes.governmentFunds&&gra<=state.govLoanAmount){h+='<button class="transfer-btn" style="width:auto;display:inline-block" onclick="repayGovLoan('+gra+')">还'+gra+'万</button>';}} h+='</div>';}} h+='<button class="exam-big-btn outline" onclick="hideLoanDialog()">关闭</button></div>'; var o=document.getElementById('loanOverlay'); var c=document.getElementById('loanContent'); if(!o||!c)return; c.innerHTML=h; o.style.display='flex'; }
+function getGovLoanLimit(){ return (state.rankLevel+1)*500; }
+function borrowGovLoan(amt){ state.govLoanAmount+=amt; state.attributes.governmentFunds+=amt; hideLoanDialog(); renderHeader(); renderAllAttributes(); addLog('政府贷款'+amt+'万，利率每回合2%。','info'); }
+function repayGovLoan(amt){ if(!checkFunds('government',amt))return; state.govLoanAmount=Math.round((state.govLoanAmount-amt)*100)/100; state.attributes.governmentFunds-=amt; hideLoanDialog(); renderHeader(); renderAllAttributes(); addLog('偿还政府贷款'+amt+'万，剩余'+state.govLoanAmount.toFixed(1)+'万。','success'); }
+function hideLoanDialog(){ document.getElementById('loanOverlay').style.display='none'; }
+function borrowLoan(amt){ state.loanAmount+=amt; state.attributes.personalMoney+=amt; hideLoanDialog(); renderHeader(); renderAllAttributes(); addLog('贷款'+amt+'万，利率每回合2%。','info'); }
+function repayLoan(amt){ if(!checkFunds('personal',amt))return; state.loanAmount=Math.round((state.loanAmount-amt)*100)/100; state.attributes.personalMoney-=amt; hideLoanDialog(); renderHeader(); renderAllAttributes(); addLog('偿还贷款'+amt+'万，剩余贷款'+state.loanAmount.toFixed(1)+'万。','success'); }
+
+TAGS=['休养生息','轻税薄赋','正常区间','重税榨取','竭泽而渔'];
+function getTaxTag(t){return t<=20?TAGS[0]:t<=40?TAGS[1]:t<=60?TAGS[2]:t<=80?TAGS[3]:TAGS[4];}
+function getBaseTaxByLv(lv){return lv===0?100:lv===1?800:lv===2?5000:20000;}
+function checkFunds(type,amt){var bal=type==='personal'?state.attributes.personalMoney:state.attributes.governmentFunds;if(bal<amt){var nm=type==='personal'?'个人':'政府财政';document.getElementById('fundTitle').textContent=nm+'资金不足';document.getElementById('fundIcon').textContent='🚫';document.getElementById('fundDetail').innerHTML='<strong>'+nm+'资金不足！</strong><br>当前持有：<strong style="color:var(--danger)">'+bal.toFixed(1)+' 万</strong><br>需要：<strong style="color:var(--red)">'+amt.toFixed(1)+' 万</strong>';document.getElementById('fundOverlay').style.display='flex';addLog('操作被阻止：'+nm+'资金不足（需要'+amt.toFixed(0)+'万，持有'+bal.toFixed(1)+'万）。','danger');return false;}return true;}
+function applyTaxEffects(){var tr=state.taxRate;var c=state.taxCoeff;var diff=tr-50;state.attributes.reputation=Math.max(0,Math.min(100,state.attributes.reputation-diff*c.repCoeff));state.econGrowth-=diff*c.ecoCoeff;state.baseTax=Math.max(10,state.baseTax*(1+state.econGrowth/100));state.attributes.governmentFunds+=state.baseTax*(1+tr/100);if(tr>70){state.highTaxCount++;if(state.highTaxCount>=3&&!state.eventInProgress){state.highTaxCount=0;addLog('🔥 高税率已持续3回合，市民请愿/商界抗议！声望-10，政绩-5。','danger');state.attributes.reputation=Math.max(0,state.attributes.reputation-10);state.attributes.politicalScore=Math.max(0,state.attributes.politicalScore-5);}}else state.highTaxCount=0;if(tr<20&&state.attributes.governmentFunds<500){state.lowTaxCount++;if(state.lowTaxCount>=3&&!state.eventInProgress){state.lowTaxCount=0;addLog('📉 财政赤字！税收过低且资金不足，政绩-10。','danger');state.attributes.politicalScore=Math.max(0,state.attributes.politicalScore-10);}}else state.lowTaxCount=0;state.taxHist.push(Math.round(state.baseTax*(1+tr/100)));state.repHist.push(Math.round(state.attributes.reputation));if(state.taxHist.length>8)state.taxHist.shift();if(state.repHist.length>8)state.repHist.shift();}
+
+function renderFinancePanel(){var el=document.getElementById('financeContent');if(!el)return;var tr=state.taxRate;var tag=getTaxTag(tr);var bt=state.baseTax;var rev=bt*(1+tr/100);var cd=state.taxCooldown;var canAdj=cd<=0;var h='';h+='<div class="tax-slider-wrap">';h+='<div class="tax-pct">'+tr+'%</div>';h+='<div class="tax-tag" style="background:'+(tr<=20?'rgba(59,184,107,0.15);color:var(--safe)':tr<=40?'rgba(100,200,100,0.15);color:#64C864':tr<=60?'rgba(212,160,23,0.15);color:var(--warning)':tr<=80?'rgba(232,120,40,0.15);color:#E87828':'rgba(212,54,54,0.15);color:var(--danger)')+'">'+tag+'</div>';h+='<input type="range" min="0" max="100" value="'+tr+'" step="1" id="taxSlider" oninput="onTaxSlide(this.value)" onchange="confirmTax(this.value)"'+(canAdj?'':' disabled')+'>';h+='<div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-dim);padding:0 2px"><span>0%</span><span>50%</span><span>100%</span></div>';h+='<div style="font-size:0.78rem;color:var(--text-dim);margin-top:6px">'+(canAdj?'可调整':'⏳ 冷却中，剩余 '+cd+' 回合可调整')+'</div>';h+='</div>';h+='<div class="tax-info">';h+='<div><div class="ti-num" style="color:var(--safe)">+'+(rev).toFixed(0)+' 万</div><div class="ti-lbl">本期税收收入</div></div>';h+='<div><div class="ti-num">'+bt.toFixed(0)+' 万</div><div class="ti-lbl">基准税收</div></div>';h+='<div><div class="ti-num">'+state.econGrowth.toFixed(1)+'%</div><div class="ti-lbl">经济增速</div></div>';h+='<div><div class="ti-num" id="nextTaxRev">'+Math.round(bt*(1+tr/100)*(1+state.econGrowth/100))+' 万</div><div class="ti-lbl">下期税收预测</div></div>';h+='</div>';h+='<div class="trend-wrap"><div class="tl">📊 近5回合趋势（红：税收 / 金：声望）</div><div class="trend-bars" id="trendBars">';var maxV=1;for(var ti=0;ti<state.taxHist.length;ti++){if(state.taxHist[ti]>maxV)maxV=state.taxHist[ti];}for(var tb=0;tb<5;tb++){var tv=state.taxHist[tb]||0;var rv=state.repHist[tb]||0;var th=Math.max(2,(tv/maxV)*34);var rh=Math.max(2,(rv/100)*34);h+='<div style="display:flex;flex-direction:column;gap:2px;flex:1;height:36px;justify-content:flex-end"><div class="trend-bars tb-t" style="height:'+th+'px"></div><div class="trend-bars tb-r" style="height:'+rh+'px"></div></div>';}h+='</div></div>';el.innerHTML=h;}
+
+function onTaxSlide(v){v=parseInt(v);var tag=getTaxTag(v);var diff=v-50;var c=state.taxCoeff;var rev=state.baseTax*(1+v/100);var repChg=-(diff*c.repCoeff).toFixed(1);var ecoChg=-(diff*c.ecoCoeff).toFixed(1);var invSucc=Math.max(0,Math.min(100,60*(1-diff*c.invCoeff))).toFixed(0);var corrRisk=v>70?'+'+Math.round(((v-70)/30)*c.corrCoeff*100)+'%':'无';var tagColor=tag==='休养生息'?'var(--safe)':tag==='轻税薄赋'?'#64C864':tag==='正常区间'?'var(--warning)':tag==='重税榨取'?'#E87828':'var(--danger)';document.getElementById('nextTaxRev').textContent=Math.round(rev)+' 万';var tip=document.getElementById('taxTooltip');if(!tip){tip=document.createElement('div');tip.id='taxTooltip';tip.className='tooltip-custom';tip.style.cssText='position:absolute;bottom:100%;left:50%;transform:translateX(-50%);width:260px;z-index:50';document.querySelector('.tax-slider-wrap').style.position='relative';document.querySelector('.tax-slider-wrap').appendChild(tip);}tip.innerHTML='<div style="font-size:0.82rem;line-height:1.7">'+'<div>标签：<span style="color:'+tagColor+';font-weight:600">'+tag+'</span></div>'+'<div>预计税收：<strong>'+Math.round(rev)+' 万</strong></div>'+'<div>声望变化：<span style="color:'+(repChg<0?'var(--danger)':'var(--safe)')+'">'+repChg+'</span></div>'+'<div>经济增速：<span style="color:'+(ecoChg<0?'var(--danger)':'var(--safe)')+'">'+ecoChg+'%</span></div>'+'<div>招商成功率：<strong>'+invSucc+'%</strong></div>'+'<div>腐败风险：<span style="color:'+(corrRisk!=='无'?'var(--danger)':'var(--text-dim)')+'">'+corrRisk+'</span></div>'+'</div>';}
+
+function confirmTax(v){v=parseInt(v);if(v===state.taxRate)return;if(state.taxCooldown>0){addLog('税率调整冷却中，剩余'+state.taxCooldown+'回合。','warning');renderFinancePanel();return;}var old=state.taxRate;state.taxRate=v;state.lastTaxAdj=state.round;state.taxCooldown=3;var tag=getTaxTag(v);var msg=v>old?'你将税率调高至'+v+'%，民众反应强烈，企业负担加重。':'你将税率调低至'+v+'%，民众欢欣鼓舞，企业信心回升。';addLog(msg,'event');renderHeader();renderAllAttributes();renderFinancePanel();}
+
+/* ===== 投资/招商系统 ===== */
+var INV_FIELDS=['agriculture','industry','construction','culture','comprehensive'];
+var INV_FIELD_NAMES={agriculture:'农业',industry:'工业',construction:'城建',culture:'文教',comprehensive:'综合'};
+var INV_FIELD_COLORS={agriculture:'#3BB86B',industry:'#4A9EFF',construction:'#E87828',culture:'#B428B4',comprehensive:'#8A8072'};
+var INV_RISK_COLORS={low:'var(--safe)',mid:'var(--warning)',high:'var(--danger)'};
+var INV_RISK_NAMES={low:'低风险',mid:'中风险',high:'高风险'};
+
+var INV_NAMES={
+agriculture:['现代农业产业园','高标准农田建设','智慧农业示范基地','乡村振兴产业带','生态养殖示范区','农产品加工园','特色农业小镇','农田水利改造','农业科技孵化器','农村电商物流园','现代种业基地','设施农业示范园'],
+industry:['新能源装备制造园','电子信息产业基地','高端新材料产业园','生物医药创新园','智能制造示范区','循环经济产业园','汽车零部件生产基地','精密仪器制造园','食品加工产业园','纺织服装产业升级园','航空航天配套产业园','数字经济产业园'],
+construction:['城市轨道交通建设','地下综合管廊工程','智慧城市基础设施','海绵城市改造','老旧小区综合整治','城市快速路网建设','市政管网升级','城市绿化提升工程','公共交通枢纽建设','滨水景观带打造','城市慢行系统建设','5G基站覆盖工程'],
+culture:['省级重点中学新建','职业教育实训基地','文化旅游综合体','体育场馆建设','文化产业园区','大学科技园','博物馆新馆建设','文化艺术中心','全民健身中心','非遗文化传承基地','图书馆新馆建设','科技馆扩建'],
+comprehensive:['大型商业综合体','科技企业孵化器','物流枢纽基地','数据中心建设','跨境电商产业园','金融服务中心','人才公寓建设','科技成果转化中心','总部经济基地','产城融合示范区','综合保税区','创新创业示范基地']
+};
+
+function getFieldName(f){return INV_FIELD_NAMES[f]||f;}
+function getFieldColor(f){return INV_FIELD_COLORS[f]||'var(--text-dim)';}
+function pickProjectName(field){var list=INV_NAMES[field];if(!list||!list.length)return '未知项目';var used=state.investUsedNames[field]||[];var avail=[];for(var i=0;i<list.length;i++){if(used.indexOf(list[i])<0)avail.push(list[i]);}if(avail.length===0){state.investUsedNames[field]=[];used=[];avail=list.slice();}var pick=avail[Math.floor(Math.random()*avail.length)];if(!state.investUsedNames[field])state.investUsedNames[field]=[];state.investUsedNames[field].push(pick);return pick;}
+
+function getRegionInvestLevel(){var lv=getRegion().level;if(lv===0)return '县';if(lv===1)return '市';if(lv===2)return '省';return '国';}
+
+function generateInvestAmount(level){var min,max,step;if(level==='县'){min=50;max=3000;step=10;}else if(level==='市'){min=500;max=50000;step=100;}else if(level==='省'){min=5000;max=300000;step=1000;}else{min=10000;max=1000000;step=5000;}var range=Math.floor((max-min)/step);return min+Math.floor(Math.random()*(range+1))*step;}
+
+function calcGainScore(inv,level){var coeff={县:50,市:30,省:20,国:10};return Math.max(1,Math.round(inv/coeff[level]));}
+function calcGainTax(inv,level){var coeff={县:100,市:80,省:50,国:30};return Math.max(0.5,+(inv/coeff[level]).toFixed(1));}
+
+function calcDuration(inv){if(inv<500)return 2+Math.floor(Math.random()*2);if(inv<5000)return 3+Math.floor(Math.random()*3);return 4+Math.floor(Math.random()*3);}
+
+function assignRisk(){var r=Math.random();if(r<0.3)return 'low';if(r<0.7)return 'mid';return 'high';}
+function getBaseSuccess(risk){return risk==='low'?80:risk==='mid'?60:40;}
+
+function generateProject(){var level=getRegionInvestLevel();var fields=INV_FIELDS.slice();if(state.investProjects.length>0&&state.investProjects.filter(function(p){return p.status==='pending'}).length>0){var lastField=state.investProjects[state.investProjects.length-1].field;var idx=fields.indexOf(lastField);if(idx>=0)fields.splice(idx,1);}var field=fields[Math.floor(Math.random()*fields.length)];var name=pickProjectName(field);var investment=generateInvestAmount(level);var gainScore=calcGainScore(investment,level);var gainTax=calcGainTax(investment,level);var duration=calcDuration(investment);var risk=assignRisk();var ecoMul=1;var eco=getRegion().economy;if(eco>=70)ecoMul=1.2;else if(eco<=30)ecoMul=0.8;gainScore=Math.round(gainScore*ecoMul);gainTax=+(gainTax*ecoMul).toFixed(1);return{id:'inv_'+Date.now()+'_'+Math.random().toString(36).substr(2,4),name:name,field:field,investment:investment,duration:duration,durationMax:duration,gainScore:gainScore,gainTax:gainTax,risk:risk,status:'pending',startTurn:0,remaining:0,fieldBonus:1.0,officerBonus:1.0,taxPenalty:1.0};}
+
+function generateProjects(){if(!state.isMainOfficial)return;var count=3+Math.floor(Math.random()*3);for(var i=0;i<count;i++){state.investProjects.push(generateProject());}addLog('📋 本月新生成'+count+'个招商项目。','info');if(document.getElementById('panelInvest').classList.contains('active'))renderInvestPanel();}
+
+function updateConstruction(){var changed=false;for(var i=0;i<state.investProjects.length;i++){var p=state.investProjects[i];if(p.status==='building'){p.remaining--;if(p.remaining<=0){changed=true;var base=getBaseSuccess(p.risk);var rate=Math.min(95,Math.round(base*p.fieldBonus*p.officerBonus*p.taxPenalty));if(Math.random()*100<rate){p.status='done';state.totalSuccess++;state.totalInvested+=p.investment;state.attributes.politicalScore+=p.gainScore;state.baseTax+=p.gainTax;state.annualInvest.curProj++;state.annualInvest.curInvest+=p.investment;addLog('🎉 【招商成功】项目「'+p.name+'」竣工！政绩+'+p.gainScore+'，税收+'+p.gainTax+'万/回合。','success');checkInvestAchievements();}else{p.status='failed';state.attributes.reputation=Math.max(0,state.attributes.reputation-5);var fRec={name:p.name,investment:p.investment,round:state.round,region:getRegion().name};state.failedProjects.push(fRec);addLog('❌ 【招商失败】项目「'+p.name+'」烂尾，资金损失'+p.investment+'万，声望-5。','danger');}}}}if(changed){renderAllAttributes();if(document.getElementById('panelInvest').classList.contains('active'))renderInvestPanel();}}
+
+function checkInvestAchievements(){if(state.totalSuccess>=1&&state.achievements.indexOf('初试身手')<0){state.achievements.push('初试身手');addLog('🏆 解锁成就：初试身手！','event');}if(state.totalSuccess>=3&&state.achievements.indexOf('招商引资能手')<0){state.achievements.push('招商引资能手');addLog('🏆 解锁成就：招商引资能手！','event');}if(state.totalSuccess>=10&&state.achievements.indexOf('励精图治')<0){state.achievements.push('励精图治');addLog('🏆 解锁成就：励精图治！','event');}if(state.totalInvested>=10000&&state.achievements.indexOf('商界领袖')<0){state.achievements.push('商界领袖');addLog('🏆 解锁成就：商界领袖！','event');}if(state.totalInvested>=100000&&state.achievements.indexOf('经济腾飞')<0){state.achievements.push('经济腾飞');addLog('🏆 解锁成就：经济腾飞！','event');}}
+
+function doInvest(pid){var p=null;for(var i=0;i<state.investProjects.length;i++){if(state.investProjects[i].id===pid){p=state.investProjects[i];break;}}if(!p||p.status!=='pending')return;var funds=state.attributes.governmentFunds;if(funds<p.investment){var nm='政府财政';document.getElementById('fundTitle').textContent=nm+'资金不足';document.getElementById('fundIcon').textContent='🚫';document.getElementById('fundDetail').innerHTML='<strong>'+nm+'资金不足！</strong><br>当前持有：<strong style=\"color:var(--danger)\">'+funds.toFixed(1)+' 万</strong><br>需要：<strong style=\"color:var(--red)\">'+p.investment.toFixed(1)+' 万</strong>';document.getElementById('fundOverlay').style.display='flex';return;}state.attributes.governmentFunds-=p.investment;p.status='building';p.startTurn=state.round;p.remaining=p.duration;addLog('【招商】你投资了「'+p.name+'」，投资额'+p.investment+'万，预计'+p.duration+'回合后竣工。','event');renderAllAttributes();renderInvestPanel();}
+
+function stopInvest(pid){var p=null;for(var i=0;i<state.investProjects.length;i++){if(state.investProjects[i].id===pid){p=state.investProjects[i];break;}}if(!p||p.status!=='building')return;if(state.attributes.politicalScore<10){addLog('政绩不足10点，无法终止项目。','danger');return;}state.attributes.politicalScore-=10;var refund=Math.round(p.investment*0.5);state.attributes.governmentFunds+=refund;p.status='failed';var fRec={name:p.name,investment:p.investment,round:state.round,region:getRegion().name};state.failedProjects.push(fRec);addLog('【招商】你紧急叫停了「'+p.name+'」，收回'+refund+'万资金。','warning');renderAllAttributes();renderInvestPanel();}
+
+function showFailedProjects(){var f=state.failedProjects;if(!f||f.length===0){addLog('暂无失败项目记录。','info');return;}var h='<div style=\"text-align:center\">';h+='<div style=\"font-size:1.1rem;font-weight:700;color:var(--danger);margin-bottom:12px\">📋 失败项目记录</div>';for(var i=0;i<f.length;i++){h+='<div style=\"background:var(--surface);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:6px;font-size:0.82rem;text-align:left\">';h+='<strong>'+f[i].name+'</strong> | 投资'+f[i].investment+'万 | 第'+f[i].round+'回合 | '+f[i].region;h+='</div>';}h+='<button class="exam-big-btn outline\" onclick="closeFundOverlay()">关闭</button></div>';var o=document.getElementById('fundOverlay');var el=document.getElementById('fundContent');if(!el){var card=document.querySelector('#fundOverlay .overlay-card');el=document.createElement('div');el.id='fundContent';card.appendChild(el);} el.innerHTML=h; o.style.display='flex';}
+function closeFundOverlay(){document.getElementById('fundOverlay').style.display='none';}
+function showRegionPickerForRank(rankLv){ var needLvs=[]; if(rankLv<=2)needLvs=[0]; else if(rankLv<=4)needLvs=[0,1]; else if(rankLv<=6)needLvs=[1,2]; else if(rankLv<=8)needLvs=[2,3]; else needLvs=[3]; var avail=[]; for(var i=0;i<REGIONS.length;i++){if(needLvs.indexOf(REGIONS[i].level)>=0)avail.push({idx:i,reg:REGIONS[i]});} var lvDesc=needLvs.map(function(l){return getRegionLevelName(l);}).join(' / '); var h='<div style="text-align:center">'; h+='<div style="font-size:2.5rem;margin-bottom:4px">🏙️</div>'; h+='<div style="font-size:1.05rem;font-weight:700;color:var(--red);margin-bottom:8px">选择任职地区</div>'; h+='<div style="font-size:0.82rem;color:var(--text-dim);margin-bottom:12px">你的新职级可任职于'+lvDesc+'，请选择一个地区：</div>'; for(var j=0;j<avail.length;j++){var a=avail[j];h+='<button class="transfer-btn" onclick="applyPromoRegion('+a.idx+')">'+a.reg.name+'（'+getRegionLevelName(a.reg.level)+'）</button>';} h+='</div>'; var o=document.getElementById('fundOverlay');var el=document.getElementById('fundContent');if(!el){var card=document.querySelector('#fundOverlay .overlay-card');el=document.createElement('div');el.id='fundContent';card.appendChild(el);} el.innerHTML=h; o.style.display='flex'; }
+function applyPromoRegion(idx){ var oldNm=getRegion().name; var t=REGIONS[idx]; state.regionIdx=idx; state.regionTenure=0; state.subsystems.government={}; state.subsystems.finance={}; closeFundOverlay(); renderHeader(); renderAllAttributes(); renderPersonnelPanel(); addLog('🏙️ 晋升后调任至'+t.name+'（'+getRegionLevelName(t.level)+'）。','event'); var lvl=getRegionInvestLevel();state.annualInvest.targetProj=lvl==='县'?3:lvl==='市'?5:lvl==='省'?8:10;state.annualInvest.targetInvest=lvl==='县'?3000:lvl==='市'?30000:lvl==='省'?200000:500000; if(state.rankLevel===3||state.rankLevel===5||state.rankLevel===7){setTimeout(function(){showFieldPicker(function(f){state.superviseField=f;addLog('你分管'+f+'领域。','success');renderHeader();renderAllAttributes();renderPersonnelPanel();});},300);} }
+function InvPid(b){doInvest(b.dataset.id||b.dataset.pid);}
+
+function renderInvestPanel(){var el=document.getElementById('investContent');if(!el)return;if(!state.isMainOfficial){el.innerHTML='<div class="panel-placeholder"><div class="emoji">🔒</div><p>招商引资系统仅对地区主官开放</p><p style="font-size:0.78rem;color:var(--text-dim)">晋升为正职（县长/区长/市长等）后可用政府财政进行招商投资</p></div>';return;}var level=getRegionInvestLevel();var budget=state.attributes.governmentFunds;var ai=state.annualInvest;var pending=state.investProjects.filter(function(p){return p.status==='pending';});var building=state.investProjects.filter(function(p){return p.status==='building';});var done=state.investProjects.filter(function(p){return p.status==='done';});var h='<div class=\"panel-card\" style=\"margin-bottom:12px\">';h+='<div style=\"display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:0.82rem\">';h+='<span>🌍 地区等级：<strong>'+level+'</strong></span>';h+='<span>💰 可用资金：<strong style=\"color:var(--safe)\">'+budget.toFixed(1)+' 万</strong></span>';h+='<span>✅ 成功：<strong>'+state.totalSuccess+'</strong></span>';h+='<span>❌ 失败：<strong style=\"color:var(--danger)\">'+state.failedProjects.length+'</strong></span>';h+='<span>📊 总投资：<strong>'+state.totalInvested.toLocaleString()+' 万</strong></span>';h+='</div>';h+='<div style=\"margin-top:8px;font-size:0.78rem;color:var(--text-dim);display:flex;gap:16px;flex-wrap:wrap\">';h+='<span>🎯 年度目标：项目 <strong>'+ai.curProj+'/'+ai.targetProj+'</strong></span>';h+='<span>投资 <strong>'+ai.curInvest.toLocaleString()+'/'+ai.targetInvest.toLocaleString()+' 万</strong></span>';var pPct=Math.min(100,Math.round(ai.curProj/ai.targetProj*100));var iPI=Math.min(100,Math.round(ai.curInvest/ai.targetInvest*100));h+='<span>项目进度：<span style=\"color:'+(pPct>=100?'var(--safe)':'var(--warning)')+'\">'+pPct+'%</span></span>';h+='<span>投资进度：<span style=\"color:'+(iPI>=100?'var(--safe)':'var(--warning)')+'\">'+iPI+'%</span></span>';h+='</div></div>';if(state.failedProjects.length>0)h+='<div style=\"text-align:right;margin-bottom:8px\"><button class=\"save-btn\" onclick=\"showFailedProjects()\" style=\"color:var(--danger);border-color:var(--danger);background:transparent;font-size:0.78rem\">📋 查看失败记录</button></div>';h+='<div class=\"panel-card\" style=\"margin-bottom:12px\"><h4 style=\"font-size:0.95rem;color:var(--red);margin-bottom:10px\">📌 待投资项目</h4>';if(pending.length===0){h+='<div style=\"text-align:center;padding:20px;color:var(--text-dim);font-size:0.85rem\">暂无待投资项目，推进回合后自动生成。</div>';}else{h+='<div style=\"display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px\">';for(var i=0;i<pending.length;i++){var p=pending[i];var riskName=INV_RISK_NAMES[p.risk];var succ=getBaseSuccess(p.risk);var finalSucc=Math.min(95,Math.round(succ*p.fieldBonus*p.officerBonus*p.taxPenalty));var rateBdr=finalSucc>=70?'2px solid var(--safe)':finalSucc<40?'2px solid var(--danger)':'1px solid var(--border)';h+='<div style=\"background:var(--bg-card);border:'+rateBdr+';border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;gap:4px\">';h+='<div style=\"display:flex;justify-content:space-between;align-items:center\"><strong style=\"font-size:0.9rem\">'+p.name+'</strong><span style=\"font-size:0.72rem;padding:1px 8px;border-radius:100px;background:'+getFieldColor(p.field)+'22;color:'+getFieldColor(p.field)+';font-weight:600\">'+getFieldName(p.field)+'</span></div>';h+='<div style=\"font-size:0.78rem;color:var(--text-dim);display:flex;flex-wrap:wrap;gap:6px\">';h+='<span>💰 <strong>'+p.investment.toLocaleString()+'</strong> 万</span>';h+='<span>⏱ '+p.duration+'回合</span>';h+='<span>📈 +'+p.gainScore+'政绩</span>';h+='<span>💹 +'+p.gainTax+'税/回合</span>';h+='</div>';h+='<div style=\"font-size:0.75rem;display:flex;justify-content:space-between;align-items:center\">';var rc=INV_RISK_COLORS[p.risk];h+='<span>风险：<span style=\"color:'+rc+';font-weight:600\">● '+riskName+'</span></span>';h+='<span title=\"基础成功率'+succ+'% × 领域修正×1.0 × 官员修正×1.0 × 税率修正×1.0\">成功率：<strong style=\"color:'+(finalSucc>=70?'var(--safe)':finalSucc<40?'var(--danger)':'var(--warning)')+'\">'+finalSucc+'%</strong></span>';h+='</div>';h+='<button class=\"save-btn\" onclick=\"InvPid(this)\" data-id=\"'+p.id+'\" style=\"background:var(--red);color:#fff;border-color:var(--red);width:100%;margin-top:4px;justify-content:center\">投资建设</button>';h+='</div>';}h+='</div>';}h+='</div>';if(building.length>0){h+='<div class=\"panel-card\" style=\"margin-bottom:12px\"><h4 style=\"font-size:0.95rem;color:var(--red);margin-bottom:10px\">🏗️ 在建项目</h4>';for(var i=0;i<building.length;i++){var p=building[i];var prog=Math.round((p.durationMax-p.remaining)/p.durationMax*100);h+='<div style=\"background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:6px\">';h+='<div style=\"display:flex;justify-content:space-between;align-items:center;font-size:0.82rem\">';h+='<span><strong>'+p.name+'</strong> <span style=\"font-size:0.72rem;padding:1px 6px;border-radius:100px;background:'+getFieldColor(p.field)+'22;color:'+getFieldColor(p.field)+'\">'+getFieldName(p.field)+'</span></span>';h+='<span style=\"font-size:0.78rem;color:var(--text-dim)\">剩 <strong>'+p.remaining+'</strong>/'+p.duration+'回合</span>';h+='</div>';h+='<div class=\"progress-track\" style=\"margin-top:4px\"><div class=\"progress-fill\" style=\"width:'+prog+'%;background:var(--gold)\"></div></div>';h+='<div style=\"text-align:right;margin-top:2px\"><button class=\"save-btn\" onclick=\"stopInvest(this.dataset.pid)\" data-pid=\"'+p.id+'\" style=\"font-size:0.72rem;color:var(--danger);border-color:var(--danger);background:transparent;padding:2px 8px\">终止(政绩-10)</button></div>';h+='</div>';}h+='</div>';}if(done.length>0){h+='<div class=\"panel-card\"><h4 style=\"font-size:0.95rem;color:var(--red);margin-bottom:8px\">✅ 已竣工项目</h4><div style=\"font-size:0.78rem;color:var(--text-dim);display:flex;flex-wrap:wrap;gap:4px\">';for(var i=Math.max(0,done.length-5);i<done.length;i++){h+='<span style=\"background:var(--surface);padding:2px 8px;border-radius:100px\">'+done[i].name+'</span>';}if(done.length>5)h+='<span>…等'+done.length+'个</span>';h+='</div></div>';}el.innerHTML=h;}
+
+
+function getAnnualResult(){return{done:state.annualInvest.curProj>=state.annualInvest.targetProj&&state.annualInvest.curInvest>=state.annualInvest.targetInvest,projPct:Math.min(100,+(state.annualInvest.curProj/state.annualInvest.targetProj*100).toFixed(1)),invPct:Math.min(100,+(state.annualInvest.curInvest/state.annualInvest.targetInvest*100).toFixed(1))};}
+function getFailedProjectsSince(turn){return state.failedProjects.filter(function(f){return f.round>=turn;});}
+
+/* ===== 四不两直暗访系统（独立模块，仅通过 InspectionCB 回调对外）===== */
+var INSPECTION_COOLDOWN=5;
+var INSPECTION_UNLOCK_RANK=3;
+var INSPECTION_FIELDS=[
+{id:'window',name:'窗口作风',icon:'🪟',desc:'政务服务中心、办事窗口',big:['你发现政务大厅多个窗口空无一人，群众排长队等待，工作人员在办公室闲聊玩手机。','某办事窗口工作人员对群众咨询爱答不理，态度恶劣，多名群众投诉无果。','你暗访发现窗口工作人员上班时间网购聊天，群众办事需往返多次，吃拿卡要现象明显。'],small:['部分窗口未放置办事指南，群众对流程不清晰，多次跑腿。','个别窗口工作人员未佩戴工牌，服务态度生硬。','部分窗口办事材料清单未及时更新，群众跑冤枉路。'],none:['你暗访了各办事窗口，工作人员在岗在位，服务态度良好，流程清晰。','各窗口秩序井然，工作人员耐心解答，群众满意度较高。','你走访了多个办事大厅，服务规范，未发现明显问题。']},
+{id:'project',name:'工程项目',icon:'🏗️',desc:'在建工程施工现场',big:['你发现某重点工程项目使用不合格钢材，施工方擅自更改设计图纸，存在严重安全隐患。','某市政工程违规层层转包，实际施工方无资质，偷工减料严重。','你暗访发现工地监理形同虚设，关键工序未按规范施工，资金挪用迹象明显。'],small:['施工现场安全防护措施不到位，部分工人未佩戴安全帽。','个别工地材料堆放混乱，临边防护缺失。','部分施工台账记录不全，监理日志流于形式。'],none:['你检查了多个在建工地，施工规范，安全措施到位，未发现违规行为。','各项目施工质量可控，安全管理规范有序。','你走访了多个重点工程，未发现质量安全隐患。']},
+{id:'poverty',name:'扶贫资金',icon:'🌾',desc:'贫困村、扶贫项目现场',big:['你发现某村扶贫资金账目混乱，数十万资金去向不明，部分贫困户未收到帮扶款。','某扶贫项目套取专项资金，虚报冒领，优亲厚友现象严重。','你暗访发现扶贫物资被基层干部截留倒卖，贫困户实际获益甚微。'],small:['个别扶贫项目进度滞后，资金拨付不及时。','部分贫困户建档立卡信息更新不及时。','个别村扶贫公示制度落实不到位。'],none:['你走访了多个贫困村，扶贫资金使用规范，贫困户得到有效帮扶。','扶贫项目推进有序，资金台账清晰可查。','你暗访的贫困村帮扶措施到位，群众反映良好。']},
+{id:'safety',name:'安全生产',icon:'⚠️',desc:'工厂、矿山、建筑工地、危化品仓库',big:['你发现某化工厂的消防通道被货物堵塞，危化品存储严重违规，存在重大安全隐患。','某矿井通风系统失效仍违规生产，瓦斯监测数据造假，风险极高。','你暗访发现一在建工地脚手架搭设严重违规，特种作业人员无证上岗。'],small:['部分工厂的安全台账记录不全，个别灭火器已过期未更换。','个别车间安全标识缺失，通道堆物。','部分企业隐患排查记录流于形式。'],none:['你检查了多家企业，安全生产措施基本到位，未发现明显漏洞。','各单位安全责任落实，应急预案完善。','你走访的厂矿企业安全管理规范，无重大隐患。']},
+{id:'ecology',name:'生态环保',icon:'🌱',desc:'河流湖泊、工业园区、垃圾处理站',big:['你发现一家电镀厂正通过暗管向河道偷排含重金属废水，污染严重。','某垃圾填埋场违规倾倒工业危废，渗滤液处理设施停运。','你暗访发现一矿山违规开采破坏耕地，扬尘污染周边村庄。'],small:['某建筑工地未采取有效降尘措施，扬尘污染周边环境。','个别河段漂浮物较多，保洁不及时。','部分养殖场粪污处理设施运行不规范。'],none:['你走访了多个环保敏感点位，未发现明显的环境污染行为。','各企业环保设施运行正常，排放达标。','你检查的河段水质良好，未发现偷排现象。']},
+{id:'business',name:'营商环境',icon:'🏢',desc:'行政审批大厅、产业园区、中小企业',big:['多名企业主反映，某部门在办理许可证时要求企业购买指定中介服务，涉嫌利益输送。','你暗访发现一园区强制企业缴纳“赞助费”，否则不予兑现优惠政策。','某审批窗口故意拖延办理，变相索要好处，企业怨声载道。'],small:['部分窗口办事指南未及时更新，导致群众多次跑腿。','个别审批环节材料要求不一次性告知。','部分惠企政策宣传不到位，企业知晓率低。'],none:['你走访了多家企业和办事窗口，营商环境整体良好，未收到实质投诉。','审批流程高效透明，企业满意度高。','你暗访的园区服务到位，政策落实到位。']},
+{id:'party',name:'基层党建',icon:'🏁',desc:'乡镇街道、村社区党组织',big:['某村党支部近三年未召开过一次正经的组织生活会，党费收缴台账全部造假。','你暗访发现一支部“三会一课”记录全部突击补造，党员发展违规严重。','某社区党组织软弱涣散，阵地形同虚设，群众反映强烈。'],small:['个别党支部的三会一课记录过于简单，存在补记痕迹。','部分党费收缴台账不规范。','个别支部组织生活会质量不高。'],none:['你抽查了多个基层党组织，组织生活基本规范，党建工作有序开展。','各支部阵地建设达标，活动正常。','你走访的党组织党建工作扎实，未发现问题。']},
+{id:'edumed',name:'教育医疗',icon:'🏥',desc:'中小学校、幼儿园、公立医院',big:['你发现某中学违规收取择校费且未入账，金额巨大，涉嫌私设小金库。','某公立医院科室收受药品回扣，过度检查过度治疗问题突出，骗取医保基金。','你暗访发现一幼儿园食堂采购劣质食材，食品安全隐患严重。'],small:['个别医生存在开具大处方、过度检查的嫌疑。','部分学校教辅材料征订不规范。','个别医院公示项目收费不完整。'],none:['你暗访了学校和医院，未发现明显的违规收费或过度医疗行为。','各单位收费规范透明，服务良好。','你检查的学校医院管理规范，无违规行为。']}
+];
+
+/* 对外回调接口（本模块仅调用不实现；接入外部系统时重写以下函数即可）*/
+var InspectionCB={
+ onScoreChange:function(d){ state.attributes.politicalScore=Math.max(0,state.attributes.politicalScore+d); },
+ onReputationChange:function(d){ state.attributes.reputation=Math.max(0,Math.min(100,state.attributes.reputation+d)); },
+ onAttentionChange:function(d){ state.attributes.inspectionAttention=Math.max(0,Math.min(100,state.attributes.inspectionAttention+d)); },
+ onLogWrite:function(text,type){ addLog(text,type||'info'); },
+ onUnlockAchievement:function(name){ if(state.achievements.indexOf(name)<0){state.achievements.push(name);} }
+};
+
+function inspectionIsUnlocked(){ return state.rankLevel>=INSPECTION_UNLOCK_RANK; }
+function inspectionCooldownRemaining(){ if(!state.lastInspectionTurn) return 0; return Math.max(0,state.lastInspectionTurn+INSPECTION_COOLDOWN-state.round); }
+function inspectionCanInspect(){ return inspectionIsUnlocked()&&inspectionCooldownRemaining()<=0; }
+function inspectionResultName(t){ return t==='big'?'发现重大问题':t==='small'?'发现小问题':'无发现'; }
+function inspectionFindField(id){ for(var i=0;i<INSPECTION_FIELDS.length;i++){if(INSPECTION_FIELDS[i].id===id)return INSPECTION_FIELDS[i];} return null; }
+function inspectionPickText(id,t){ var f=inspectionFindField(id); if(!f)return '未发现问题'; var arr=f[t]||f.none; return arr[Math.floor(Math.random()*arr.length)]||arr[0]; }
+function inspectionRollResult(){ var r=Math.random()*100; if(r<40)return 'big'; if(r<80)return 'small'; return 'none'; }
+
+/* 查询接口（巡视组系统预留）*/
+function getConcealedRecords(turn){ return (state.concealedRecords||[]).filter(function(r){return r.turn>=turn;}); }
+function getInspectionSummary(){ var h=state.inspectionHistory||[]; var total=h.length,found=0,reported=0,concealed=0; for(var i=0;i<h.length;i++){if(h[i].result!=='none')found++; if(h[i].decision==='report')reported++; if(h[i].decision==='conceal')concealed++;} return {total:total,found:found,reported:reported,concealed:concealed}; }
+
+var _inspPending=null;
+function startInspection(fieldId){
+ if(!inspectionCanInspect()){InspectionCB.onLogWrite('暗访当前不可用。','warning');return;}
+ var fd=inspectionFindField(fieldId); if(!fd)return;
+ var t=inspectionRollResult(); var text=inspectionPickText(fieldId,t);
+ var repD=0,scoreD=0,attD=0;
+ if(t==='big'){repD=15;scoreD=20;attD=-10;} else if(t==='small'){repD=5;scoreD=5;}
+ if(scoreD)InspectionCB.onScoreChange(scoreD);
+ if(repD)InspectionCB.onReputationChange(repD);
+ if(attD)InspectionCB.onAttentionChange(attD);
+ state.lastInspectionTurn=state.round;
+ InspectionCB.onLogWrite('【四不两直】你暗访了「'+fd.name+'」领域，'+inspectionResultName(t)+'。'+text, t==='big'?'danger':t==='small'?'warning':'info');
+ if(t!=='none'){
+  _inspPending={field:fieldId,fieldName:fd.name,result:t,text:text};
+  showInspectionResult(fd,t,text,true);
+ }else{
+  state.inspectionHistory.push({field:fieldId,fieldName:fd.name,result:'none',resultName:'无发现',decision:'none',decisionName:'无需决策',desc:text,turn:state.round,region:getRegion().name});
+  showInspectionResult(fd,t,text,false);
+ }
+ renderAllAttributes(); renderInspectionPanel(); checkInspectionAchievements();
+}
+
+function showInspectionResult(fd,t,text,needDecision){
+ var o=document.getElementById('inspectionOverlay'),c=document.getElementById('inspectionOverlayContent'); if(!o||!c)return;
+ var cls=t==='big'?'big':t==='small'?'small':'none';
+ var h='<div style="text-align:center;margin-bottom:10px"><div style="font-size:1rem;font-weight:700;color:var(--red)">🔍 暗访结果</div><div style="font-size:0.8rem;color:var(--text-dim);margin-top:2px">'+fd.icon+' '+fd.name+'</div></div>';
+ h+='<div class="insp-result '+cls+'"><div class="ir-tag">'+inspectionResultName(t)+'</div><div class="ir-txt">'+text+'</div></div>';
+ if(t!=='none'&&needDecision){
+  h+='<div style="font-size:0.75rem;color:var(--text-dim);text-align:center;margin-bottom:8px">已记录本次发现，请决定如何处理。</div>';
+  h+='<button class="insp-main-btn" onclick="showInspectionDecision()" style="width:100%;justify-content:center">下一步：处理决策 →</button>';
+ }else{
+  h+='<button class="insp-main-btn" onclick="hideInspectionOverlay()" style="width:100%;justify-content:center">确认</button>';
+ }
+ c.innerHTML=h; o.style.display='flex';
+}
+function hideInspectionOverlay(){ document.getElementById('inspectionOverlay').style.display='none'; }
+
+function showInspectionDecision(){
+ if(!_inspPending)return; var p=_inspPending;
+ var o=document.getElementById('inspectionOverlay'),c=document.getElementById('inspectionOverlayContent');
+ var h='<div style="text-align:center;margin-bottom:10px"><div style="font-size:1rem;font-weight:700;color:var(--red)">⚖️ 处理决策</div><div style="font-size:0.8rem;color:var(--text-dim);margin-top:2px">'+p.fieldName+' · '+inspectionResultName(p.result)+'</div></div>';
+ h+='<div style="font-size:0.82rem;color:var(--text-dim);line-height:1.6;background:var(--surface);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:8px">'+p.text+'</div>';
+ h+='<div class="insp-decide">';
+ h+='<button class="insp-opt report" data-decision="report" onclick="inspDecideClick(this)"><div class="io-tt">📋 如实上报</div><div class="io-eff">声望 +5<br>关注度 -5</div><div class="io-log">“你将暗访中发现的问题如实上报，组织表示肯定。”</div></button>';
+ h+='<button class="insp-opt conceal" data-decision="conceal" onclick="inspDecideClick(this)"><div class="io-tt">🤐 隐瞒不报</div><div class="io-eff">声望 -10<br>关注度 +15</div><div class="io-log">“你决定将问题压下，悄悄处理。”</div></button>';
+ h+='</div>';
+ c.innerHTML=h;
+}
+function inspDecideClick(b){ resolveInspectionDecision(b.dataset.decision); }
+function resolveInspectionDecision(dec){
+ if(!_inspPending)return; var p=_inspPending;
+ var repD=0,attD=0,decName,logTxt,logType;
+ if(dec==='report'){repD=5;attD=-5;decName='如实上报';logTxt='你将暗访中发现的问题如实上报，组织表示肯定。';logType='success';}
+ else{repD=-10;attD=15;decName='隐瞒问题';logTxt='你决定将问题压下，悄悄处理。';logType='danger';}
+ if(repD)InspectionCB.onReputationChange(repD);
+ if(attD)InspectionCB.onAttentionChange(attD);
+ InspectionCB.onLogWrite(logTxt,logType);
+ var rec={field:p.field,fieldName:p.fieldName,result:p.result,resultName:inspectionResultName(p.result),decision:dec,decisionName:decName,desc:p.text,turn:state.round,region:getRegion().name};
+ state.inspectionHistory.push(rec);
+ if(dec==='conceal'){ state.concealedRecords.push({field:p.field,fieldName:p.fieldName,result:p.result,desc:p.text,turn:state.round,region:getRegion().name}); }
+ _inspPending=null;
+ hideInspectionOverlay(); renderAllAttributes(); renderInspectionPanel(); checkInspectionAchievements();
+ InspectionCB.onLogWrite('【暗访记录】领域：'+p.fieldName+'；结果：'+inspectionResultName(p.result)+'；决策：'+decName+'。','event');
+}
+
+function showInspectionFieldPicker(){
+ if(!inspectionCanInspect()){InspectionCB.onLogWrite('暗访当前不可用。','warning');return;}
+ var o=document.getElementById('inspectionOverlay'),c=document.getElementById('inspectionOverlayContent');
+ var h='<div style="text-align:center;margin-bottom:14px"><div style="font-size:1.1rem;font-weight:700;color:var(--red)">🔍 选择暗访领域</div><div style="font-size:0.78rem;color:var(--text-dim);margin-top:4px">四不两直 · 每次仅可选一个领域</div></div>';
+ h+='<div class="insp-grid">';
+ for(var i=0;i<INSPECTION_FIELDS.length;i++){var f=INSPECTION_FIELDS[i];h+='<button class="insp-field" data-field="'+f.id+'" onclick="inspFieldClick(this)"><div class="if-ico">'+f.icon+'</div><div class="if-nm">'+f.name+'</div><div class="if-dc">'+f.desc+'</div></button>';}
+ h+='</div>';
+ h+='<div style="text-align:center;margin-top:14px"><button class="save-btn" onclick="hideInspectionOverlay()" style="color:var(--text);background:var(--surface);border:1px solid var(--border)">取消</button></div>';
+ c.innerHTML=h; o.style.display='flex';
+}
+function inspFieldClick(b){ startInspection(b.dataset.field); }
+
+function renderInspectionPanel(){
+ var el=document.getElementById('inspectionContent'); if(!el)return;
+ var unlocked=inspectionIsUnlocked(); var cd=inspectionCooldownRemaining(); var sum=getInspectionSummary();
+ var h='<div class="insp-hero"><div class="insp-ico">🔍</div><div class="insp-tt">四不两直 · 暗访检查</div><div class="insp-sub">不发通知、不打招呼、不听汇报、不用陪同接待，直奔基层、直插现场，监督检查基层问题。</div>';
+ if(!unlocked){
+  h+='<div style="font-size:0.82rem;color:var(--danger)">🔒 副处级及以上职级解锁（当前：'+getRankName()+'）</div>';
+  h+='<button class="insp-main-btn" disabled>暗访检查</button>';
+ }else if(cd>0){
+  h+='<div style="font-size:0.82rem;color:var(--warning)">⏳ 冷却中，剩余 '+cd+' 回合</div>';
+  h+='<button class="insp-main-btn" disabled>暗访检查</button>';
+ }else{
+  h+='<button class="insp-main-btn" onclick="showInspectionFieldPicker()">🔍 开始暗访</button>';
+ }
+ h+='</div>';
+ h+='<div class="insp-stat-row">';
+ h+='<div class="insp-stat"><div class="is-n">'+sum.total+'</div><div class="is-l">暗访总次数</div></div>';
+ h+='<div class="insp-stat"><div class="is-n" style="color:var(--warning)">'+sum.found+'</div><div class="is-l">发现问题</div></div>';
+ h+='<div class="insp-stat"><div class="is-n" style="color:var(--safe)">'+sum.reported+'</div><div class="is-l">如实上报</div></div>';
+ h+='<div class="insp-stat"><div class="is-n" style="color:var(--danger)">'+sum.concealed+'</div><div class="is-l">隐瞒问题</div></div>';
+ h+='</div>';
+ h+='<div style="text-align:right;margin-bottom:8px"><button class="save-btn" onclick="showInspectionHistory()" style="color:var(--red);border-color:var(--red);background:transparent">📋 暗访记录</button></div>';
+ h+='<div class="panel-card"><h4 style="font-size:0.9rem;color:var(--red);margin-bottom:8px">📖 八大暗访领域</h4><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:0.72rem">';
+ for(var i=0;i<INSPECTION_FIELDS.length;i++){var f=INSPECTION_FIELDS[i];h+='<div style="background:var(--surface);border-radius:var(--radius-sm);padding:6px;text-align:center">'+f.icon+'<br>'+f.name+'</div>';}
+ h+='</div></div>';
+ el.innerHTML=h;
+}
+
+function showInspectionHistory(){
+ var o=document.getElementById('inspectionOverlay'),c=document.getElementById('inspectionOverlayContent');
+ var h=state.inspectionHistory||[];
+ var html='<div style="text-align:center;margin-bottom:12px"><div style="font-size:1rem;font-weight:700;color:var(--red)">📋 暗访记录</div><div style="font-size:0.78rem;color:var(--text-dim);margin-top:2px">共 '+h.length+' 次暗访</div></div>';
+ if(h.length===0){ html+='<div style="text-align:center;padding:20px;color:var(--text-dim);font-size:0.85rem">暂无暗访记录</div>'; }
+ else{
+  html+='<div class="insp-hist">';
+  for(var i=h.length-1;i>=0;i--){var r=h[i];
+   var rcls=r.result==='big'?'big':r.result==='small'?'small':'none';
+   var dcls=r.decision==='report'?'report':r.decision==='conceal'?'conceal':'noneed';
+   var dName=r.decision==='report'?'如实上报':r.decision==='conceal'?'隐瞒问题':'无需决策';
+   html+='<div class="insp-hist-item"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><span class="ih-r">第'+r.turn+'回合</span><span style="color:var(--text-dim)">'+r.region+'</span></div>';
+   html+='<div style="margin-top:2px">'+r.fieldName+' <span class="insp-badge '+rcls+'">'+r.resultName+'</span> <span class="insp-badge '+dcls+'">'+dName+'</span></div>';
+   html+='<div style="font-size:0.75rem;color:var(--text-dim);margin-top:2px">'+r.desc+'</div>';
+   html+='</div>';
+  }
+  html+='</div>';
+ }
+ html+='<div style="text-align:center;margin-top:12px"><button class="save-btn" onclick="hideInspectionOverlay()" style="color:var(--text);background:var(--surface);border:1px solid var(--border)">关闭</button></div>';
+ c.innerHTML=html; o.style.display='flex';
+}
+
+function checkInspectionAchievements(){
+ var sum=getInspectionSummary();
+ if(sum.total>=1&&state.achievements.indexOf('暗访初体验')<0){state.achievements.push('暗访初体验');InspectionCB.onLogWrite('🏆 解锁成就：暗访初体验！','event');}
+ if(sum.reported>=5&&state.achievements.indexOf('敢于担当')<0){state.achievements.push('敢于担当');InspectionCB.onLogWrite('🏆 解锁成就：敢于担当！','event');}
+ if(sum.concealed>=3&&state.achievements.indexOf('欺上瞒下')<0){state.achievements.push('欺上瞒下');InspectionCB.onLogWrite('🏆 解锁成就：欺上瞒下！','event');}
+ if(sum.found>=10&&state.achievements.indexOf('火眼金睛')<0){state.achievements.push('火眼金睛');InspectionCB.onLogWrite('🏆 解锁成就：火眼金睛！','event');}
+}
+
+/* ===== 测试/调试系统（长按「读取存档」10秒触发）===== */
+var _lpTimer=null,_lpStart=0,_lpTriggered=false,_lpRaf=null;
+var LP_HOLD=10000;
+function setupLongPressLoad(){
+ var btn=document.getElementById('btnLoadGame'); if(!btn)return;
+ var wrap=document.getElementById('loadBtnWrap');
+ var hint=document.getElementById('lpHint');
+ var prog=document.getElementById('lpProgress');
+ function animateLp(){
+   cancelAnimationFrame(_lpRaf);
+   function tick(){
+     var el=Date.now()-_lpStart;
+     var pct=Math.min(100,(el/LP_HOLD)*100);
+     if(prog)prog.style.width=pct+'%';
+     if(hint)hint.textContent='长按中… 还需 '+Math.max(0,Math.ceil((LP_HOLD-el)/1000))+' 秒';
+     if(el<LP_HOLD&&_lpTimer&&!_lpTriggered){_lpRaf=requestAnimationFrame(tick);}
+   }
+   _lpRaf=requestAnimationFrame(tick);
+ }
+ function clearLp(){
+   if(_lpTimer){clearTimeout(_lpTimer);_lpTimer=null;}
+   cancelAnimationFrame(_lpRaf);_lpRaf=null;
+   if(wrap)wrap.classList.remove('pressing');
+   if(prog)prog.style.width='0%';
+   if(hint)hint.textContent='长按 10 秒进入测试系统…';
+ }
+ function startPress(){
+   if(_lpTimer)return;
+   _lpStart=Date.now();_lpTriggered=false;
+   if(wrap)wrap.classList.add('pressing');
+   animateLp();
+   _lpTimer=setTimeout(function(){_lpTriggered=true;clearLp();showTestPanel();},LP_HOLD);
+ }
+ function endPress(){
+   var triggered=_lpTriggered;
+   clearLp();
+   if(triggered)return;
+   startLoadGame();
+ }
+ btn.addEventListener('mousedown',startPress);
+ btn.addEventListener('mouseup',endPress);
+ btn.addEventListener('mouseleave',function(){if(_lpTimer)clearLp();});
+ btn.addEventListener('touchstart',function(e){e.preventDefault();startPress();},{passive:false});
+ btn.addEventListener('touchend',function(e){e.preventDefault();endPress();},{passive:false});
+ btn.addEventListener('touchmove',function(){if(_lpTimer)clearLp();});
+}
+
+function showTestPanel(){
+ var o=document.getElementById('testOverlay'),c=document.getElementById('testContent'); if(!o||!c)return;
+ var nameVal=(document.getElementById('nameInput')&&document.getElementById('nameInput').value.trim())||'测试员';
+ var rankOpts='';for(var i=0;i<RANKS.length;i++){rankOpts+='<option value="'+i+'"'+(i===3?' selected':'')+'>'+i+' · '+RANKS[i]+(i>=3?'（解锁暗访）':'')+'</option>';}
+ var regOpts='';for(var j=0;j<REGIONS.length;j++){regOpts+='<option value="'+j+'">'+REGIONS[j].name+'（'+getRegionLevelName(REGIONS[j].level)+'）</option>';}
+ var h='<div style="text-align:center;margin-bottom:12px"><div style="font-size:1.1rem;font-weight:700;color:var(--gold-dark)">🛠️ 测试 / 调试系统</div><div style="font-size:0.75rem;color:var(--text-dim);margin-top:3px">自定义初始状态，直接进入游戏（跳过考试）</div></div>';
+ h+='<div class="test-panel">';
+ h+='<div class="test-field test-field-full"><label>姓名</label><input type="text" id="tpName" value="'+nameVal+'" maxlength="10"></div>';
+ h+='<div class="test-field"><label>职级</label><select id="tpRank">'+rankOpts+'</select></div>';
+ h+='<div class="test-field"><label>地区</label><select id="tpRegion">'+regOpts+'</select></div>';
+ h+='<div class="test-field"><label>体力 (0-100)</label><input type="number" id="tpStamina" value="80" min="0" max="100"></div>';
+ h+='<div class="test-field"><label>回合</label><input type="number" id="tpRound" value="1" min="1"></div>';
+ h+='<div class="test-field"><label>个人金钱 (万)</label><input type="number" id="tpMoney" value="50"></div>';
+ h+='<div class="test-field"><label>政府财政 (万)</label><input type="number" id="tpFunds" value="5000"></div>';
+ h+='<div class="test-field"><label>政绩值</label><input type="number" id="tpScore" value="0"></div>';
+ h+='<div class="test-field"><label>声望 (0-100)</label><input type="number" id="tpRep" value="60" min="0" max="100"></div>';
+ h+='<div class="test-field"><label>清廉度 (0-100)</label><input type="number" id="tpIntg" value="75" min="0" max="100"></div>';
+ h+='<div class="test-field"><label>纪委关注度 (0-100)</label><input type="number" id="tpAtt" value="0" min="0" max="100"></div>';
+ h+='<div class="test-field"><label>税率 (0-100)</label><input type="number" id="tpTax" value="50" min="0" max="100"></div>';
+ h+='<div class="test-field test-field-full"><label class="test-check"><input type="checkbox" id="tpMain"> 是否为正职（主官，可动用政府财政）</label></div>';
+ h+='</div>';
+ h+='<div style="display:flex;gap:10px;margin-top:14px">';
+ h+='<button class="exam-big-btn" onclick="applyTestConfig()" style="flex:1">🚀 应用并进入游戏</button>';
+ h+='<button class="exam-big-btn outline" onclick="closeTestOverlay()" style="flex:0 0 auto">取消</button>';
+ h+='</div>';
+ c.innerHTML=h; o.style.display='flex';
+}
+function closeTestOverlay(){document.getElementById('testOverlay').style.display='none';}
+
+function applyTestConfig(){
+ var num=function(id,def){var e=document.getElementById(id);var v=e?parseFloat(e.value):def;return isNaN(v)?def:v;};
+ var nameV=(document.getElementById('tpName')?document.getElementById('tpName').value.trim():'')||'测试员';
+ var rk=Math.max(0,Math.min(RANKS.length-1,Math.round(num('tpRank',3))));
+ var rg=Math.max(0,Math.min(REGIONS.length-1,Math.round(num('tpRegion',0))));
+ state.round=Math.max(1,Math.round(num('tpRound',1)));
+ state.month=((state.round-1)%12)+1;
+ state.year=2024+Math.floor((state.round-1)/12);
+ state.age=22+Math.floor((state.round-1)/4);
+ state.playerName=nameV;
+ state.workAge=Math.floor((state.round-1)/4);
+ state.rankLevel=rk;
+ var p=POSITIONS[rk];
+ state.position=p?(p.title||(p.options?p.options[0]:RANKS[rk])):RANKS[rk];
+ state.regionIdx=rg;
+ state.regionTenure=1;
+ state.transferCooldown=0;state.promoCooldown=0;state.promoVoteCooldown=0;
+ state.taxCooldown=0;state.lastTaxAdj=0;
+ state.isMainOfficial=!!document.getElementById('tpMain').checked;
+ state.loanAmount=0;state.govLoanAmount=0;
+ state.taxRate=Math.max(0,Math.min(100,num('tpTax',50)));
+ var rl=REGIONS[rg].level;
+ state.baseTax=rl===0?100:rl===1?800:rl===2?5000:20000;
+ state.econGrowth=0;state.taxHist=[];state.repHist=[];state.highTaxCount=0;state.lowTaxCount=0;
+ state.investProjects=[];state.completedProjects=[];state.failedProjects=[];state.investUsedNames={};state.totalInvested=0;state.totalSuccess=0;
+ state.lastInspectionTurn=0;state.inspectionHistory=[];state.concealedRecords=[];
+ state.subordinates=[];state.corruptionCount=0;state.rejectCorruptionCount=0;
+ state.achievements=[];state.health='良好';state.hotPublicOpinion=0;state.cadreRank='-';
+ state.leadership={};state.faction={};state.marriage=null;state.family={};state.peerData=[];state.favorDebt=[];
+ state.secretary=null;state.driver=null;state.receptionRecord=[];state.inspectionTeam={};
+ state.superviseField=null;state.fieldChangeCooldown=0;
+ state.attributes.stamina=Math.max(0,Math.min(100,num('tpStamina',80)));
+ state.attributes.personalMoney=Math.max(0,num('tpMoney',50));
+ state.attributes.politicalScore=Math.max(0,num('tpScore',0));
+ state.attributes.reputation=Math.max(0,Math.min(100,num('tpRep',60)));
+ state.attributes.integrity=Math.max(0,Math.min(100,num('tpIntg',75)));
+ state.attributes.inspectionAttention=Math.max(0,Math.min(100,num('tpAtt',0)));
+ state.attributes.governmentFunds=Math.max(0,num('tpFunds',5000));
+ state.eventPools={0:{triggeredIds:[],resetCount:0,totalTriggered:0},1:{triggeredIds:[],resetCount:0,totalTriggered:0},2:{triggeredIds:[],resetCount:0,totalTriggered:0},3:{triggeredIds:[],resetCount:0,totalTriggered:0}};
+ state.pendingEvents=[];state.eventInProgress=false;
+ state._logs=[];state._nextLogId=0;
+ var lvl=getRegionInvestLevel();
+ state.annualInvest={year:state.year,targetProj:lvl==='县'?3:lvl==='市'?5:lvl==='省'?8:10,targetInvest:lvl==='县'?3000:lvl==='市'?30000:lvl==='省'?200000:500000,curProj:0,curInvest:0};
+ closeTestOverlay();
+ document.getElementById('startScreen').style.display='none';
+ document.getElementById('examScreen').style.display='none';
+ document.getElementById('gameContainer').style.display='flex';
+ var lb=document.getElementById('logBody'); if(lb)lb.innerHTML='<div class="log-empty">暂无事件记录</div>';
+ renderHeader();renderAllAttributes();renderExtraStats();renderPersonnelPanel();renderFinancePanel();renderInspectionPanel();
+ addLog('🛠️ 已进入测试模式，自定义初始状态已应用。','event');
+ addLog('干部「'+state.playerName+'」以'+getRankName()+'级 '+getPosition()+'身份抵达'+getRegion().name+'。','event');
+ initTabs();
+ var bsv=document.getElementById('btnSave');if(bsv)bsv.addEventListener('click',saveGame);
+ var blv=document.getElementById('btnLoad');if(blv)blv.addEventListener('click',function(){loadGame();renderPersonnelPanel();});
+}
+
+function initGame(){ setupLongPressLoad(); var r=getRegion();if(r){if(r.level===0)state.baseTax=100;else if(r.level===1)state.baseTax=800;else if(r.level===2)state.baseTax=5000;else state.baseTax=20000; var lvl=getRegionInvestLevel();var ai=state.annualInvest;ai.targetProj=lvl==='县'?3:lvl==='市'?5:lvl==='省'?8:10;ai.targetInvest=lvl==='县'?3000:lvl==='市'?30000:lvl==='省'?200000:500000;} var c=state.taxCoeff;c.repCoeff=+(0.3*(0.9+Math.random()*0.2)).toFixed(3);c.ecoCoeff=+(0.2*(0.9+Math.random()*0.2)).toFixed(3);c.invCoeff=+(0.008*(0.9+Math.random()*0.2)).toFixed(4);c.corrCoeff=+(0.2*(0.9+Math.random()*0.2)).toFixed(3); try{ var d=localStorage.getItem(SAVE_KEY); if(d){ JSON.parse(d); showStartScreen(); document.getElementById('nameInput').placeholder='已有存档，点击读取恢复'; return; } }catch(e){} showStartScreen(); }
+document.addEventListener('DOMContentLoaded',initGame);
+</script>
+</body>
+</html>
